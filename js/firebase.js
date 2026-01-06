@@ -53,6 +53,31 @@ window.firebaseUtils = {
         }
     },
     
+    // Function to get the next invoice number using a transaction
+    getNextInvoiceNumber: async function() {
+        const counterRef = db.collection('counters').doc('invoiceLastNo');
+        
+        try {
+            const result = await db.runTransaction(async (transaction) => {
+                const counterDoc = await transaction.get(counterRef);
+                
+                if (!counterDoc.exists) {
+                    // If counter doesn't exist, initialize it
+                    transaction.set(counterRef, { value: 1 });
+                    return 1;
+                } else {
+                    const newValue = counterDoc.data().value + 1;
+                    transaction.update(counterRef, { value: newValue });
+                    return newValue;
+                }
+            });
+            return result;
+        } catch (error) {
+            console.error('Error getting next invoice number:', error);
+            throw error;
+        }
+    },
+    
     // Function to check if user exists in main users collection
     userExists: async function(userId) {
         try {
@@ -184,6 +209,52 @@ window.firebaseUtils = {
             return navigators;
         } catch (error) {
             console.error('Error getting navigators:', error);
+            throw error;
+        }
+    },
+    
+    // Function to get all invoices for the current user (or all for admin)
+    getInvoices: async function(userId, userRole) {
+        try {
+            let query = db.collection('invoices');
+            
+            if (userRole === 'navigator') {
+                // Navigator can only see their own invoices
+                query = query.where('createdBy', '==', userId);
+            }
+            
+            const snapshot = await query.get();
+            const invoices = [];
+            
+            snapshot.forEach(doc => {
+                invoices.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
+            
+            return invoices;
+        } catch (error) {
+            console.error('Error getting invoices:', error);
+            throw error;
+        }
+    },
+    
+    // Function to get a specific invoice by ID
+    getInvoiceById: async function(invoiceId) {
+        try {
+            const doc = await db.collection('invoices').doc(invoiceId).get();
+            
+            if (!doc.exists) {
+                return null;
+            }
+            
+            return {
+                id: doc.id,
+                ...doc.data()
+            };
+        } catch (error) {
+            console.error('Error getting invoice by ID:', error);
             throw error;
         }
     },

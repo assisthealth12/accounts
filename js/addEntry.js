@@ -24,6 +24,40 @@ class AddEntryManager {
                 this.togglePaymentDetails(e.target.value);
             });
         }
+        
+        // Collected by change listener
+        const collectedBySelect = document.getElementById('collected-by');
+        if (collectedBySelect) {
+            collectedBySelect.addEventListener('change', (e) => {
+                this.toggleCollectionDetails(e.target.value);
+            });
+        }
+        
+        // Mode of transaction change listener
+        const modeOfTransactionSelect = document.getElementById('mode-of-transaction');
+        if (modeOfTransactionSelect) {
+            modeOfTransactionSelect.addEventListener('change', (e) => {
+                this.toggleTransactionIdField(e.target.value);
+            });
+        }
+        
+        // Note: The add-new-hcp-btn was removed from the HTML form, so this functionality is now available in the Manage Healthcare Providers section only
+        
+        // Referral status change listener
+        const referralStatusSelect = document.getElementById('referral-status');
+        if (referralStatusSelect) {
+            referralStatusSelect.addEventListener('change', (e) => {
+                this.toggleReferralPaymentDetails(e.target.value);
+            });
+        }
+        
+        // Referral payment mode change listener
+        const referralPaymentModeSelect = document.getElementById('referral-payment-mode');
+        if (referralPaymentModeSelect) {
+            referralPaymentModeSelect.addEventListener('change', (e) => {
+                this.toggleReferralTransactionIdField(e.target.value);
+            });
+        }
     }
 
     // Open add entry modal
@@ -47,18 +81,71 @@ class AddEntryManager {
             await window.servicesManager.loadServicesDropdown();
         }
         
-        modal.style.display = 'block';
+        // Load HCP dropdown
+        await this.populateHCPDropdown();
+        
+        // Show the modal with animation
+        modal.style.display = 'flex';
+        // Trigger reflow and add show class for animation
+        void modal.offsetWidth; // Force reflow
+        modal.classList.add('show');
         
         // Show/hide payment details based on current value
         const paymentByUs = document.getElementById('payment-by-us').value;
         this.togglePaymentDetails(paymentByUs);
+        
+        // Show/hide collection details based on current value
+        const collectedBy = document.getElementById('collected-by').value;
+        this.toggleCollectionDetails(collectedBy);
+        
+        // Show/hide transaction ID field based on current mode
+        const modeOfTransaction = document.getElementById('mode-of-transaction').value;
+        this.toggleTransactionIdField(modeOfTransaction);
+        
+        // Show/hide referral payment details based on current referral status
+        const referralStatus = document.getElementById('referral-status').value;
+        this.toggleReferralPaymentDetails(referralStatus);
+        
+        // Show/hide referral transaction ID field based on current referral payment mode
+        const referralPaymentMode = document.getElementById('referral-payment-mode').value;
+        this.toggleReferralTransactionIdField(referralPaymentMode);
+    }
+    
+    // Populate HCP dropdown with active providers
+    async populateHCPDropdown() {
+        try {
+            // Get active healthcare providers
+            const providers = await window.healthcareProviderManager.getActiveProviders();
+            
+            const hcpSelect = document.getElementById('hcp-name');
+            if (!hcpSelect) return;
+            
+            // Clear existing options except the first placeholder
+            hcpSelect.innerHTML = '<option value="">Select Healthcare Provider</option>';
+            
+            // Add providers to dropdown
+            providers.forEach(provider => {
+                const option = document.createElement('option');
+                option.value = provider.name;
+                option.textContent = provider.name;
+                hcpSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading healthcare providers:', error);
+        }
     }
 
     // Close modal
     closeModal() {
         const modal = document.getElementById('entry-modal');
         if (modal) {
-            modal.style.display = 'none';
+            // Remove show class to trigger close animation
+            modal.classList.remove('show');
+            
+            // Wait for animation to complete before hiding
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
         }
         this.currentEntry = null;
         this.isEditing = false;
@@ -89,6 +176,69 @@ class AddEntryManager {
         
         // Show/hide payment details based on paymentByUs value
         this.togglePaymentDetails(entry.paymentByUs);
+        
+        // Populate collection details if they exist
+        if (entry.collectionDetails) {
+            document.getElementById('collected-by').value = entry.collectionDetails.collectedBy || '';
+            
+            // Show collection details section if collectedBy is set
+            if (entry.collectionDetails.collectedBy) {
+                document.getElementById('collection-details').style.display = 'block';
+                
+                // Set mode of transaction
+                if (entry.collectionDetails.modeOfTransaction) {
+                    document.getElementById('mode-of-transaction').value = entry.collectionDetails.modeOfTransaction;
+                    
+                    // Show transaction ID field if mode is UPI or Bank Transfer
+                    if (entry.collectionDetails.modeOfTransaction === 'UPI' || entry.collectionDetails.modeOfTransaction === 'Bank Transfer') {
+                        document.getElementById('transaction-id-group').style.display = 'block';
+                        
+                        // Set transaction ID if available
+                        if (entry.collectionDetails.transactionId) {
+                            document.getElementById('transaction-id').value = entry.collectionDetails.transactionId;
+                        }
+                    }
+                }
+            }
+        } else {
+            // Clear collection details fields if no collection details
+            document.getElementById('collected-by').value = '';
+            document.getElementById('collection-details').style.display = 'none';
+            document.getElementById('mode-of-transaction').value = '';
+            document.getElementById('transaction-id-group').style.display = 'none';
+            document.getElementById('transaction-id').value = '';
+        }
+        
+        // Populate referral payment details if they exist
+        if (entry.referralPaymentDetails) {
+            // Show referral payment details section
+            document.getElementById('referral-payment-details').style.display = 'block';
+            
+            // Set referral payment mode
+            document.getElementById('referral-payment-mode').value = entry.referralPaymentDetails.paymentMode || '';
+            
+            // Show transaction ID field if mode is UPI or Bank Transfer
+            if (entry.referralPaymentDetails.paymentMode === 'UPI' || entry.referralPaymentDetails.paymentMode === 'Bank Transfer') {
+                document.getElementById('referral-transaction-id-group').style.display = 'block';
+                
+                // Set referral transaction ID if available
+                if (entry.referralPaymentDetails.transactionId) {
+                    document.getElementById('referral-transaction-id').value = entry.referralPaymentDetails.transactionId;
+                }
+            }
+        } else {
+            // Clear referral payment fields if no referral payment details
+            document.getElementById('referral-payment-mode').value = '';
+            document.getElementById('referral-transaction-id-group').style.display = 'none';
+            document.getElementById('referral-transaction-id').value = '';
+            
+            // Only show referral payment details if referral status is Received
+            if (entry.referralStatus === 'Received') {
+                document.getElementById('referral-payment-details').style.display = 'block';
+            } else {
+                document.getElementById('referral-payment-details').style.display = 'none';
+            }
+        }
     }
 
     // Clear form for new entry
@@ -112,6 +262,19 @@ class AddEntryManager {
         
         // Hide payment details section
         document.getElementById('payment-details-section').style.display = 'none';
+        
+        // Clear and hide collection details section
+        document.getElementById('collected-by').value = '';
+        document.getElementById('collection-details').style.display = 'none';
+        document.getElementById('mode-of-transaction').value = '';
+        document.getElementById('transaction-id-group').style.display = 'none';
+        document.getElementById('transaction-id').value = '';
+        
+        // Clear and hide referral payment details section
+        document.getElementById('referral-payment-mode').value = '';
+        document.getElementById('referral-transaction-id-group').style.display = 'none';
+        document.getElementById('referral-transaction-id').value = '';
+        document.getElementById('referral-payment-details').style.display = 'none';
     }
 
     // Toggle payment details section based on "Payment By Us" selection
@@ -122,6 +285,60 @@ class AddEntryManager {
             paymentDetailsSection.style.display = 'block';
         } else {
             paymentDetailsSection.style.display = 'none';
+        }
+    }
+    
+    // Toggle collection details section based on "Collected By" selection
+    toggleCollectionDetails(value) {
+        const collectionDetailsSection = document.getElementById('collection-details');
+        
+        if (value === 'Collected by AssistHealth') {
+            collectionDetailsSection.style.display = 'block';
+        } else {
+            collectionDetailsSection.style.display = 'none';
+            // Clear dependent fields when switching to other option
+            document.getElementById('mode-of-transaction').value = '';
+            document.getElementById('transaction-id-group').style.display = 'none';
+            document.getElementById('transaction-id').value = '';
+        }
+    }
+    
+    // Toggle transaction ID field based on mode of transaction
+    toggleTransactionIdField(mode) {
+        const transactionIdGroup = document.getElementById('transaction-id-group');
+        
+        if (mode === 'UPI' || mode === 'Bank Transfer') {
+            transactionIdGroup.style.display = 'block';
+        } else {
+            transactionIdGroup.style.display = 'none';
+            document.getElementById('transaction-id').value = '';
+        }
+    }
+    
+    // Toggle referral payment details section based on referral status
+    toggleReferralPaymentDetails(status) {
+        const referralPaymentDetailsSection = document.getElementById('referral-payment-details');
+        
+        if (status === 'Received') {
+            referralPaymentDetailsSection.style.display = 'block';
+        } else {
+            referralPaymentDetailsSection.style.display = 'none';
+            // Clear dependent fields when switching to other option
+            document.getElementById('referral-payment-mode').value = '';
+            document.getElementById('referral-transaction-id-group').style.display = 'none';
+            document.getElementById('referral-transaction-id').value = '';
+        }
+    }
+    
+    // Toggle referral transaction ID field based on referral payment mode
+    toggleReferralTransactionIdField(mode) {
+        const referralTransactionIdGroup = document.getElementById('referral-transaction-id-group');
+        
+        if (mode === 'UPI' || mode === 'Bank Transfer') {
+            referralTransactionIdGroup.style.display = 'block';
+        } else {
+            referralTransactionIdGroup.style.display = 'none';
+            document.getElementById('referral-transaction-id').value = '';
         }
     }
 
@@ -153,6 +370,50 @@ class AddEntryManager {
         if (!date || !memberName || !packageType || !hcpName) {
             alert('Please fill in all mandatory fields: Date, Member Name, Package Type, and HCP Name');
             return false;
+        }
+        
+        // Validate collected by field
+        const collectedBy = document.getElementById('collected-by').value;
+        if (!collectedBy) {
+            alert('Please select how the payment was collected');
+            return false;
+        }
+        
+        // If collected by AssistHealth, validate dependent fields
+        if (collectedBy === 'Collected by AssistHealth') {
+            const modeOfTransaction = document.getElementById('mode-of-transaction').value;
+            if (!modeOfTransaction) {
+                alert('Please select the mode of transaction');
+                return false;
+            }
+            
+            // If mode is UPI or Bank Transfer, validate transaction ID
+            if ((modeOfTransaction === 'UPI' || modeOfTransaction === 'Bank Transfer')) {
+                const transactionId = document.getElementById('transaction-id').value;
+                if (!transactionId) {
+                    alert('Please enter the transaction ID for UPI or Bank Transfer');
+                    return false;
+                }
+            }
+        }
+        
+        // If referral status is Received, validate referral payment details
+        const referralStatus = document.getElementById('referral-status').value;
+        if (referralStatus === 'Received') {
+            const referralPaymentMode = document.getElementById('referral-payment-mode').value;
+            if (!referralPaymentMode) {
+                alert('Please select the referral payment mode');
+                return false;
+            }
+            
+            // If referral payment mode is UPI or Bank Transfer, validate referral transaction ID
+            if ((referralPaymentMode === 'UPI' || referralPaymentMode === 'Bank Transfer')) {
+                const referralTransactionId = document.getElementById('referral-transaction-id').value;
+                if (!referralTransactionId) {
+                    alert('Please enter the referral transaction ID for UPI or Bank Transfer');
+                    return false;
+                }
+            }
         }
         
         // Validate total bill amount (must be a number, can be 0)
@@ -223,6 +484,53 @@ class AddEntryManager {
                 navigatorId: window.authService.getCurrentUser().uid,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+            
+            // Add collection details
+            const collectedBy = document.getElementById('collected-by').value;
+            if (collectedBy) {
+                entryData.collectionDetails = {
+                    collectedBy: collectedBy
+                };
+                
+                if (collectedBy === 'Collected by AssistHealth') {
+                    const modeOfTransaction = document.getElementById('mode-of-transaction').value;
+                    if (modeOfTransaction) {
+                        entryData.collectionDetails.modeOfTransaction = modeOfTransaction;
+                        
+                        // Add transaction ID if mode is UPI or Bank Transfer
+                        if (modeOfTransaction === 'UPI' || modeOfTransaction === 'Bank Transfer') {
+                            const transactionId = document.getElementById('transaction-id').value;
+                            if (transactionId) {
+                                entryData.collectionDetails.transactionId = transactionId;
+                            }
+                        }
+                    }
+                }
+            } else {
+                entryData.collectionDetails = null;
+            }
+            
+            // Add referral payment details
+            const referralStatus = document.getElementById('referral-status').value;
+            if (referralStatus === 'Received') {
+                const referralPaymentMode = document.getElementById('referral-payment-mode').value;
+                if (referralPaymentMode) {
+                    entryData.referralPaymentDetails = {
+                        paymentMode: referralPaymentMode,
+                        paidDate: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    // Add referral transaction ID if mode is UPI or Bank Transfer
+                    if (referralPaymentMode === 'UPI' || referralPaymentMode === 'Bank Transfer') {
+                        const referralTransactionId = document.getElementById('referral-transaction-id').value;
+                        if (referralTransactionId) {
+                            entryData.referralPaymentDetails.transactionId = referralTransactionId;
+                        }
+                    }
+                }
+            } else {
+                entryData.referralPaymentDetails = null;
+            }
             
             // Add payment details if payment by us is Yes
             if (document.getElementById('payment-by-us').value === 'Yes') {

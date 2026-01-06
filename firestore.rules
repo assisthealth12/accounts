@@ -45,23 +45,36 @@ service cloud.firestore {
     
     // Services master
     match /services_master/{serviceId} {
-      allow read: if signedIn() && isActiveUser();
+      allow read: if signedIn(); // Allow any signed-in user to read services
       allow create: if signedIn() && isActiveUser(); // Both can create
       allow update, delete: if isAdmin(); // Only admin can edit/delete
     }
     
     // Counters - needed for auto-increment SL No
     match /counters/{counterId} {
-      allow read: if signedIn() && isActiveUser();
-      allow write: if signedIn() && isActiveUser(); // Both admin and navigator need to increment
+      allow read, write: if signedIn() && isActiveUser(); // Both admin and navigator need to read/write counters for invoice numbers
     }
     
     // Service entries
     match /service_entries/{entryId} {
       allow read: if isAdmin() || (isNavigator() && resource.data.navigatorId == request.auth.uid);
       allow create: if isAdmin() || (isNavigator() && request.resource.data.navigatorId == request.auth.uid);
-      allow update: if isAdmin() || (isNavigator() && resource.data.navigatorId == request.auth.uid && request.resource.data.navigatorId == resource.data.navigatorId);
+      allow update: if isAdmin() || (isNavigator() && resource.data.navigatorId == request.auth.uid && request.resource.data.navigatorId == resource.data.navigatorId); // navigatorId field cannot be changed during updates
       allow delete: if isAdmin(); // Only admin can delete
+    }
+    
+    // Healthcare providers
+    match /healthcare_providers/{providerId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Invoices
+    match /invoices/{invoiceId} {
+      allow read: if isAdmin() || (isNavigator() && resource.data.createdBy == request.auth.uid);
+      allow create: if signedIn() && isActiveUser();
+      allow update: if isAdmin() || (isNavigator() && resource.data.createdBy == request.auth.uid && request.resource.data.createdBy == resource.data.createdBy); // createdBy field cannot be changed during updates
+      allow delete: if isAdmin();
     }
   }
 }

@@ -299,4 +299,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // Password toggle functionality
+    window.togglePassword = function() {
+        const passwordInput = document.getElementById('login-password');
+        const toggleText = document.getElementById('toggle-text');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleText.textContent = 'HIDE';
+        } else {
+            passwordInput.type = 'password';
+            toggleText.textContent = 'SHOW';
+        }
+    };
 });

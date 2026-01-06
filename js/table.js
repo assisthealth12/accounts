@@ -57,6 +57,20 @@ class TableManager {
         // Get service name
         const serviceName = this.getServiceNameById(entry.serviceTypeId);
         
+        // Format collection details
+        const collectionDetails = entry.collectionDetails || {};
+        const collectedBy = collectionDetails.collectedBy || '';
+        const modeOfTransaction = collectionDetails.modeOfTransaction || '';
+        const transactionId = collectionDetails.transactionId || '';
+        
+        // Format referral payment details
+        const referralPaymentDetails = entry.referralPaymentDetails || {};
+        const referralPaymentMode = referralPaymentDetails.paymentMode || '';
+        const referralTransactionId = referralPaymentDetails.transactionId || '';
+        
+        // Format payment details
+        const paymentDetails = entry.paymentDetails || {};
+        
         row.innerHTML = `
             <td>${entry.slNo || ''}</td>
             <td>${dateStr}</td>
@@ -65,15 +79,20 @@ class TableManager {
             <td>${serviceName}</td>
             <td>${entry.packageType || ''}</td>
             <td>${entry.hcpName || ''}</td>
+            <td>${collectedBy}</td>
+            <td>${modeOfTransaction}</td>
+            <td>${transactionId}</td>
             <td>${totalBillAmount}</td>
             <td>${discountGiven}</td>
             <td>${referralAmount}</td>
             <td>${entry.referralStatus || ''}</td>
+            <td>${referralPaymentMode}</td>
+            <td>${referralTransactionId}</td>
             <td>${entry.paymentByUs || ''}</td>
-            <td>${entry.paymentDetails ? entry.paymentDetails.mode || '' : ''}</td>
-            <td>${entry.paymentDetails ? entry.paymentDetails.paidTo || '' : ''}</td>
+            <td>${paymentDetails.mode || ''}</td>
+            <td>${paymentDetails.paidTo || ''}</td>
             <td>${amountPaid}</td>
-            <td>${entry.paymentDetails ? entry.paymentDetails.paymentStatus || '' : ''}</td>
+            <td>${paymentDetails.paymentStatus || ''}</td>
             <td class="actions-cell">
                 <button class="btn-action btn-edit" data-entry-id="${entry.id}">Edit</button>
                 <button class="btn-action btn-delete" data-entry-id="${entry.id}">Delete</button>
@@ -142,6 +161,26 @@ class TableManager {
                 // Sort by payment status if payment details exist
                 valA = valA && valA.paymentStatus ? valA.paymentStatus : '';
                 valB = valB && valB.paymentStatus ? valB.paymentStatus : '';
+            } else if (column === 'collectionMethod') {
+                // Get collection method from collectionDetails
+                valA = valA && valA.collectionDetails ? valA.collectionDetails.collectedBy || '' : '';
+                valB = valB && valB.collectionDetails ? valB.collectionDetails.collectedBy || '' : '';
+            } else if (column === 'transactionMode') {
+                // Get transaction mode from collectionDetails
+                valA = valA && valA.collectionDetails ? valA.collectionDetails.modeOfTransaction || '' : '';
+                valB = valB && valB.collectionDetails ? valB.collectionDetails.modeOfTransaction || '' : '';
+            } else if (column === 'transactionId') {
+                // Get transaction ID from collectionDetails
+                valA = valA && valA.collectionDetails ? valA.collectionDetails.transactionId || '' : '';
+                valB = valB && valB.collectionDetails ? valB.collectionDetails.transactionId || '' : '';
+            } else if (column === 'referralPaymentMode') {
+                // Get referral payment mode from referralPaymentDetails
+                valA = valA && valA.referralPaymentDetails ? valA.referralPaymentDetails.paymentMode || '' : '';
+                valB = valB && valB.referralPaymentDetails ? valB.referralPaymentDetails.paymentMode || '' : '';
+            } else if (column === 'referralTransactionId') {
+                // Get referral transaction ID from referralPaymentDetails
+                valA = valA && valA.referralPaymentDetails ? valA.referralPaymentDetails.transactionId || '' : '';
+                valB = valB && valB.referralPaymentDetails ? valB.referralPaymentDetails.transactionId || '' : '';
             } else {
                 valA = valA || '';
                 valB = valB || '';
@@ -191,9 +230,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Map column index to field name
         const columnMap = [
             'slNo', 'date', 'memberName', 'ahid', 'serviceTypeId', 'packageType', 
-            'hcpName', 'totalBillAmount', 'discountGiven', 'referralAmount', 
-            'referralStatus', 'paymentByUs', 'paymentDetails', 'paymentDetails', 
-            'paymentDetails', 'paymentDetails'
+            'hcpName', 'collectedBy', 'modeOfTransaction', 'transactionId',
+            'totalBillAmount', 'discountGiven', 'referralAmount', 'referralStatus',
+            'referralPaymentMode', 'referralTransactionId', 'paymentByUs', 'modeOfTransfer', 
+            'paidTo', 'amountPaid', 'paymentStatus'
         ];
         
         const column = columnMap[index];

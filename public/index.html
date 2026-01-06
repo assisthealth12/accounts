@@ -8,54 +8,120 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="../images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="../images/android-chrome-512x512.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="../images/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../images/favicon-16x16.png">
+    <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+    <link rel="manifest" href="../images/site.webmanifest">
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/dashboard.css">
 </head>
 <body>
     <div id="app">
         <!-- Login Screen -->
-        <div id="login-screen" class="screen">
-            <div class="login-container">
-                <h2>Accounts Dashboard</h2>
-                <div class="form-container">
-                    <div id="login-form">
-                        <h3>Login</h3>
-                        <div class="input-group">
-                            <input type="email" id="login-email" placeholder="Email" required>
+    <div id="login-screen" class="screen">
+        <!-- Animated Background Shapes -->
+        <div class="bg-shape shape-1"></div>
+        <div class="bg-shape shape-2"></div>
+        <div class="bg-shape shape-3"></div>
+        
+        <div class="modern-login-container">
+            <!-- Left Side - Login Form -->
+            <div class="login-left-side">
+                <div class="login-form-content">
+                    <!-- Logo and Branding -->
+                    <div class="brand-section">
+                        <img src="../images/AH1.png" alt="AssistHealth Logo" class="login-logo">
+                        <div class="brand-text-info">
+                            <h1 class="company-name">AssistHealth</h1>
+                            <p class="company-tagline">Health. Assured. Always.</p>
                         </div>
-                        <div class="input-group">
-                            <input type="password" id="login-password" placeholder="Password" required>
-                        </div>
-                        <button id="login-btn" class="btn-primary">Login</button>
-                        <p class="switch-form">
-                            <a href="#" id="show-activate-form">Activate Account / Set Password</a>
-                        </p>
                     </div>
                     
-                    <div id="activate-form" style="display: none;">
-                        <h3>Activate Account</h3>
-                        <div class="input-group">
-                            <input type="email" id="activate-email" placeholder="Email" required>
+                    <h2 class="welcome-heading">Welcome Back</h2>
+                    <p class="welcome-description">Login to access your dashboard and manage your healthcare accounts</p>  
+                    <!-- Login Form -->
+                    <div class="form-container">
+                        <div id="login-form">
+                            <div class="input-group">
+                                <div class="input-icon-wrapper">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <input type="email" id="login-email" placeholder="User Name" required>
+                            </div>
+                            
+                            <div class="input-group">
+                                <div class="input-icon-wrapper">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <input type="password" id="login-password" placeholder="Password" required>
+                                <button type="button" class="password-toggle" onclick="togglePassword()">
+                                    <span id="toggle-text">SHOW</span>
+                                </button>
+                            </div>
+                            
+                            <button id="login-btn" class="btn-primary login-submit">Login</button>
+                            
+                            <p class="switch-form">
+                                <a href="#" id="show-activate-form">Forgot Password?</a>
+                            </p>
                         </div>
-                        <div class="input-group">
-                            <input type="password" id="activate-password" placeholder="Password" required>
+                        
+                        <div id="activate-form" style="display: none;">
+                            <h3 style="color: #2c3e50; margin-bottom: 1.5rem;">Activate Account</h3>
+                            <div class="input-group">
+                                <div class="input-icon-wrapper">
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                                <input type="email" id="activate-email" placeholder="Email" required>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-icon-wrapper">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <input type="password" id="activate-password" placeholder="Password" required>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-icon-wrapper">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <input type="password" id="activate-confirm-password" placeholder="Confirm Password" required>
+                            </div>
+                            <button id="activate-btn" class="btn-primary login-submit">Activate Account</button>
+                            <p class="switch-form">
+                                <a href="#" id="show-login-form">Back to Login</a>
+                            </p>
                         </div>
-                        <div class="input-group">
-                            <input type="password" id="activate-confirm-password" placeholder="Confirm Password" required>
-                        </div>
-                        <button id="activate-btn" class="btn-primary">Activate Account</button>
-                        <p class="switch-form">
-                            <a href="#" id="show-login-form">Back to Login</a>
-                        </p>
                     </div>
+                    
+                    <div id="login-message" class="message"></div>
                 </div>
-                <div id="login-message" class="message"></div>
+            </div>
+            
+            <!-- Right Side - Registration/Features -->
+            <div class="login-right-side">
+                <div class="right-side-content">
+                    <div class="feature-icon-circle">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <h2 class="right-side-title">New Here?</h2>
+                    <p class="right-side-description">
+                        First time user? Set your password and register with the company provided mail id to get started
+                    </p>
+                    <button class="btn-signup" onclick="document.getElementById('show-activate-form').click()">
+                        Register Here
+                    </button>
+                </div>
             </div>
         </div>
+    </div>
 
         <!-- Dashboard Screen -->
         <div id="dashboard-screen" class="screen" style="display: none;">
@@ -75,6 +141,12 @@
                     <nav>
                         <ul id="sidebar-nav">
                             <!-- Navigation items will be populated by JavaScript based on role -->
+                            <li id="nav-manage-providers" class="nav-item" style="display: none;">
+                                <a href="#" data-target="manage-providers">
+                                    <i class="fas fa-hospital"></i>
+                                    <span>Manage Healthcare Providers</span>
+                                </a>
+                            </li>
                         </ul>
                     </nav>
                 </aside>
@@ -84,7 +156,7 @@
                     <!-- Dashboard Header -->
                     <div class="dashboard-header">
                         <h1 id="dashboard-title">Dashboard</h1>
-                        <button id="add-entry-btn" class="btn-primary"><i class="fas fa-plus"></i> Add Entry</button>
+                        <button id="add-entry-btn" class="btn-primary"><i class="fas fa-plus-circle"></i> Add Entry</button>
                     </div>
 
                     <!-- Summary Cards -->
@@ -138,50 +210,96 @@
 
                     <!-- Filters -->
                     <div class="filters">
-                        <div class="filter-group">
-                            <label>Date Range</label>
-                            <input type="date" id="filter-start-date" required>
-                            <input type="date" id="filter-end-date" required>
+                        <!-- Row 1: Date Range + Main Filters -->
+                        <div class="filter-row">
+                            <div class="filter-group date-range">
+                                <label>Date Range</label>
+                                <div class="date-range-inputs">
+                                    <div class="date-input-wrapper">
+                                        <label for="filter-start-date">Start</label>
+                                        <input type="date" id="filter-start-date" required>
+                                    </div>
+                                    <div class="date-input-wrapper">
+                                        <label for="filter-end-date">End</label>
+                                        <input type="date" id="filter-end-date" required>
+                                    </div>
+                                </div>
+                                <div class="date-presets">
+                                    <button type="button" class="btn-small" data-preset="today">Today</button>
+                                    <button type="button" class="btn-small" data-preset="7days">7 Days</button>
+                                    <button type="button" class="btn-small" data-preset="30days">30 Days</button>
+                                </div>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="filter-service-type">Service Type</label>
+                                <select id="filter-service-type">
+                                    <option value="">All</option>
+                                    <!-- Options populated by JavaScript -->
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="filter-package-type">Package Type</label>
+                                <select id="filter-package-type">
+                                    <option value="">All</option>
+                                    <option value="Basic">Basic</option>
+                                    <option value="Premium">Premium</option>
+                                    <option value="Special">Special</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="filter-hcp">Healthcare Provider</label>
+                                <select id="filter-hcp">
+                                    <option value="">All</option>
+                                    <!-- Options populated by JavaScript -->
+                                </select>
+                            </div>
                         </div>
-                        <div class="filter-group">
-                            <label>Service Type</label>
-                            <select id="filter-service-type" multiple>
-                                <!-- Options will be populated by JavaScript -->
-                            </select>
+                        
+                        <!-- Row 2: Additional Filters -->
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label for="filter-collected-by">Collected By</label>
+                                <select id="filter-collected-by">
+                                    <option value="">All</option>
+                                    <option value="Collected by AssistHealth">Collected by AssistHealth</option>
+                                    <option value="Collected by Healthcare Provider">Collected by Healthcare Provider</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="filter-referral-status">Referral Status</label>
+                                <select id="filter-referral-status">
+                                    <option value="">All</option>
+                                    <option value="Received">Received</option>
+                                    <option value="Pending">Pending</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Navigator filter (admin only) -->
+                            <div id="navigator-filter" class="filter-group" style="display: none;">
+                                <label for="filter-navigator">Navigator</label>
+                                <select id="filter-navigator">
+                                    <option value="">All</option>
+                                    <!-- Options populated by JavaScript -->
+                                </select>
+                            </div>
                         </div>
-                        <div class="filter-group">
-                            <label>Package Type</label>
-                            <select id="filter-package-type">
-                                <option value="">All</option>
-                                <option value="Basic">Basic</option>
-                                <option value="Premium">Premium</option>
-                                <option value="Special">Special</option>
-                            </select>
+                        
+                        <!-- Action Buttons Row -->
+                        <div class="filter-actions">
+                            <button id="apply-filters-btn" class="btn-primary">
+                                <i class="fas fa-check"></i> Apply Filters
+                            </button>
+                            <button id="reset-filters-btn" class="btn-secondary">
+                                <i class="fas fa-undo"></i> Reset Filters
+                            </button>
+                            <button id="download-excel-btn" class="btn-success">
+                                <i class="fas fa-file-excel"></i> Download Excel
+                            </button>
                         </div>
-                        <div class="filter-group">
-                            <label>Referral Status</label>
-                            <select id="filter-referral-status">
-                                <option value="">All</option>
-                                <option value="Received">Received</option>
-                                <option value="Pending">Pending</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label>Payment Status</label>
-                            <select id="filter-payment-status">
-                                <option value="">All</option>
-                                <option value="Completed">Completed</option>
-                                <option value="Pending">Pending</option>
-                            </select>
-                        </div>
-                        <div id="navigator-filter" class="filter-group" style="display: none;">
-                            <label>Navigator</label>
-                            <select id="filter-navigator">
-                                <option value="">All</option>
-                                <!-- Options will be populated by JavaScript -->
-                            </select>
-                        </div>
-                        <button id="apply-filters-btn" class="btn-primary">Apply Filters</button>
                     </div>
 
                     <!-- Charts -->
@@ -212,10 +330,15 @@
                                     <th>Service Type</th>
                                     <th>Package Type</th>
                                     <th>HCP Name</th>
+                                    <th>Collected By</th>
+                                    <th>Transaction Mode</th>
+                                    <th>Transaction ID</th>
                                     <th>Total Bill</th>
                                     <th>Discount</th>
                                     <th>Referral Amount</th>
                                     <th>Referral Status</th>
+                                    <th>Referral Payment Mode</th>
+                                    <th>Referral Transaction ID</th>
                                     <th>Payment By Us</th>
                                     <th>Mode of Transfer</th>
                                     <th>Paid To</th>
@@ -242,111 +365,189 @@
                     <div class="modal-body">
                         <form id="entry-form">
                             <input type="hidden" id="entry-id">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="date">Date *</label>
-                                    <input type="date" id="date" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="member-name">Member Name *</label>
-                                    <input type="text" id="member-name" placeholder="Enter member name" required>
-                                </div>
-                            </div>
                             
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="ahid">AHID</label>
-                                    <input type="text" id="ahid" placeholder="Enter AHID">
-                                </div>
-                                <div class="form-group">
-                                    <label for="service-type">Service Type *</label>
-                                    <select id="service-type" required>
-                                        <option value="">Select Service Type</option>
-                                        <!-- Options will be populated by JavaScript -->
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="package-type">Package Type *</label>
-                                    <select id="package-type" required>
-                                        <option value="">Select Package Type</option>
-                                        <option value="Basic">Basic</option>
-                                        <option value="Premium">Premium</option>
-                                        <option value="Special">Special</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="hcp-name">Health Care Provider Name *</label>
-                                    <input type="text" id="hcp-name" placeholder="Enter HCP name" required>
-                                </div>
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="total-bill-amount">Total Bill Amount *</label>
-                                    <input type="number" id="total-bill-amount" placeholder="Enter amount" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="discount-given">Discount Given</label>
-                                    <input type="number" id="discount-given" placeholder="Enter discount">
-                                </div>
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="referral-amount">Referral Amount</label>
-                                    <input type="number" id="referral-amount" placeholder="Enter referral amount">
-                                </div>
-                                <div class="form-group">
-                                    <label for="referral-status">Referral Status</label>
-                                    <select id="referral-status">
-                                        <option value="Pending">Pending</option>
-                                        <option value="Received">Received</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="payment-by-us">Payment By Us</label>
-                                    <select id="payment-by-us">
-                                        <option value="No">No</option>
-                                        <option value="Yes">Yes</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div id="payment-details-section" style="display: none;">
+                            <!-- Basic Information Section -->
+                            <div class="form-section">
+                                <h4><i class="fas fa-info-circle"></i> Basic Information</h4>
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="mode-of-transfer">Mode of Transfer</label>
-                                        <select id="mode-of-transfer">
-                                            <option value="">Select Mode</option>
-                                            <option value="Cash">Cash</option>
-                                            <option value="Bank Transfer">Bank Transfer</option>
-                                            <option value="Cheque">Cheque</option>
-                                            <option value="Online">Online</option>
-                                        </select>
+                                        <label for="date" class="required">Date</label>
+                                        <input type="date" id="date" required>
                                     </div>
                                     <div class="form-group">
-                                        <label for="paid-to">Paid To</label>
-                                        <input type="text" id="paid-to" placeholder="Enter recipient name">
+                                        <label for="member-name" class="required">Member Name</label>
+                                        <input type="text" id="member-name" placeholder="Enter member name" required>
                                     </div>
                                 </div>
                                 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="amount-paid">Amount Paid</label>
-                                        <input type="number" id="amount-paid" placeholder="Enter amount paid">
+                                        <label for="ahid">AHID</label>
+                                        <input type="text" id="ahid" placeholder="Enter AHID">
                                     </div>
                                     <div class="form-group">
-                                        <label for="payment-status">Payment Status</label>
-                                        <select id="payment-status">
-                                            <option value="Pending">Pending</option>
-                                            <option value="Completed">Completed</option>
+                                        <label for="service-type" class="required">Service Type</label>
+                                        <select id="service-type" required>
+                                            <option value="">Select Service Type</option>
+                                            <!-- Options will be populated by JavaScript -->
                                         </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="package-type" class="required">Package Type</label>
+                                        <select id="package-type" required>
+                                            <option value="">Select Package Type</option>
+                                            <option value="Basic">Basic</option>
+                                            <option value="Premium">Premium</option>
+                                            <option value="Special">Special</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="hcp-name" class="required">Health Care Provider Name</label>
+                                        <select id="hcp-name" required>
+                                            <option value="">Select Healthcare Provider</option>
+                                            <!-- Options will be populated by JavaScript -->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Collection Details Section -->
+                            <div class="form-section">
+                                <h4><i class="fas fa-money-bill-wave"></i> Collection Details</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="collected-by" class="required">Collected By</label>
+                                        <select id="collected-by" required>
+                                            <option value="">Select Collection Method</option>
+                                            <option value="Collected by AssistHealth">Collected by AssistHealth</option>
+                                            <option value="Collected by Healthcare Provider">Collected by Healthcare Provider</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div id="collection-details" style="display: none;">
+                                    <div class="conditional-field">
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="mode-of-transaction" class="required">Mode of Transaction</label>
+                                                <select id="mode-of-transaction">
+                                                    <option value="">Select Transaction Mode</option>
+                                                    <option value="UPI">UPI</option>
+                                                    <option value="Cash">Cash</option>
+                                                    <option value="Bank Transfer">Bank Transfer</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group" id="transaction-id-group" style="display: none;">
+                                                <label for="transaction-id" class="required">Transaction ID</label>
+                                                <input type="text" id="transaction-id" placeholder="Enter transaction ID">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Financial Details Section -->
+                            <div class="form-section">
+                                <h4><i class="fas fa-rupee-sign"></i> Financial Details</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="total-bill-amount" class="required">Total Bill Amount</label>
+                                        <input type="number" id="total-bill-amount" placeholder="Enter amount" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="discount-given">Discount Given</label>
+                                        <input type="number" id="discount-given" placeholder="Enter discount">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Referral Details Section -->
+                            <div class="form-section">
+                                <h4><i class="fas fa-hand-holding-usd"></i> Referral Details</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="referral-amount">Referral Amount</label>
+                                        <input type="number" id="referral-amount" placeholder="Enter referral amount">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="referral-status">Referral Status</label>
+                                        <select id="referral-status">
+                                            <option value="Pending">Pending</option>
+                                            <option value="Received">Received</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div id="referral-payment-details" style="display: none;">
+                                    <div class="conditional-field">
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="referral-payment-mode" class="required">Referral Payment Mode</label>
+                                                <select id="referral-payment-mode">
+                                                    <option value="">Select Payment Mode</option>
+                                                    <option value="Cash">Cash</option>
+                                                    <option value="UPI">UPI</option>
+                                                    <option value="Bank Transfer">Bank Transfer</option>
+                                                    <option value="Wallet">Wallet</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group" id="referral-transaction-id-group" style="display: none;">
+                                                <label for="referral-transaction-id" class="required">Referral Transaction ID</label>
+                                                <input type="text" id="referral-transaction-id" placeholder="Enter referral transaction ID">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Payment Details Section -->
+                            <div class="form-section">
+                                <h4><i class="fas fa-credit-card"></i> Payment Details</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="payment-by-us">Payment By Us</label>
+                                        <select id="payment-by-us">
+                                            <option value="No">No</option>
+                                            <option value="Yes">Yes</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div id="payment-details-section" style="display: none;">
+                                    <div class="conditional-field">
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="mode-of-transfer">Mode of Transfer</label>
+                                                <select id="mode-of-transfer">
+                                                    <option value="">Select Mode</option>
+                                                    <option value="Cash">Cash</option>
+                                                    <option value="Bank Transfer">Bank Transfer</option>
+                                                    <option value="Cheque">Cheque</option>
+                                                    <option value="Online">Online</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="paid-to">Paid To</label>
+                                                <input type="text" id="paid-to" placeholder="Enter recipient name">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="amount-paid">Amount Paid</label>
+                                                <input type="number" id="amount-paid" placeholder="Enter amount paid">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="payment-status">Payment Status</label>
+                                                <select id="payment-status">
+                                                    <option value="Pending">Pending</option>
+                                                    <option value="Completed">Completed</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -362,6 +563,50 @@
     </div>
     </div>
 
+        <!-- Manage Healthcare Providers Modal -->
+    <div id="manage-providers-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Manage Healthcare Providers</h3>
+                <span class="close" id="close-providers-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-provider-name">Add New Provider</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="new-provider-name" placeholder="Enter provider name">
+                        <button id="add-provider-btn" class="btn-primary">Add Provider</button>
+                    </div>
+                </div>
+                <div id="providers-loading" class="loading-state" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> Loading providers...
+                </div>
+                <div id="providers-empty" class="empty-state" style="display: none;">
+                    <i class="fas fa-hospital"></i>
+                    <h4>No providers found</h4>
+                    <p>Add your first healthcare provider to get started.</p>
+                </div>
+                <div class="table-container">
+                    <table id="providers-table">
+                        <thead>
+                            <tr>
+                                <th>Provider Name</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="providers-table-body">
+                            <!-- Provider rows will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="../js/firebase.js"></script>
     <script src="../js/seedDefaultServices.js"></script>
     <script src="../js/auth.js"></script>
@@ -371,5 +616,23 @@
     <script src="../js/addEntry.js"></script>
     <script src="../js/charts.js"></script>
     <script src="../js/services.js"></script>
+    <script src="../js/healthcareProviders.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="../js/excelExport.js"></script>
+    <script src="../js/invoiceGenerator.js"></script>
+    <script src="../js/invoicePDF.js"></script>
+    <script>
+        // Global error handler to catch third-party script errors like giveFreely
+        window.addEventListener('error', function(e) {
+            // Check if the error is from a third-party script related to giveFreely
+            if (e.filename && (e.filename.includes('giveFreely') || e.filename.includes('GiveFreely'))) {
+                console.warn('Suppressed third-party script error:', e.error);
+                return true; // Prevent default error handling
+            }
+            // For other errors, you might want to log them for debugging
+            // console.error('Application error:', e.error);
+        });
+    </script>
 </body>
 </html>
