@@ -4,11 +4,28 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": "public",
+    "public": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/*.js.map",
+      "**/*.ts",
+      "**/*.jsx",
+      "**/*.tsx",
+      "**/package*.json",
+      "**/README.md",
+      "**/CHANGELOG.md",
+      "**/CONTRIBUTING.md",
+      "**/docs/**",
+      "**/tests/**",
+      "**/test/**",
+      "**/spec/**",
+      "**/src/**",
+      "**/dev/**",
+      "**/build/**",
+      "**/dist/**",
+      "add_admin.js"
     ],
     "rewrites": [
       {
