@@ -102,6 +102,13 @@ class InvoicePDFManager {
   addHeader(pdf, invoice) {
     const pageWidth = pdf.internal.pageSize.getWidth();
     
+    // Add logo
+    try {
+      pdf.addImage('images/AH1.png', 'PNG', 10, 5, 30, 10);
+    } catch (e) {
+      console.warn('Logo not found:', e);
+    }
+    
     // Company name
     pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
@@ -208,6 +215,16 @@ ${this.getStyles()}
 </style>
 
 <div class="invoice-container">
+
+  <!-- LOGO AND COMPANY INFO -->
+  <div class="header-section no-break">
+    <div style="text-align: center; margin-bottom: 15px;">
+      <img src="images/AH1.png" alt="AssistHealth Logo" style="height: 40px; margin-bottom: 5px;">
+      <div class="company-name">AssistHealth</div>
+      <div class="tagline">Health. Assured. Always.</div>
+      <hr style="margin: 8px 0; border: none; border-top: 1px solid #2f9e75; width: 100%;">
+    </div>
+  </div>
 
   <!-- INVOICE INFO (First page only) -->
   <div class="info-section no-break">
@@ -398,6 +415,31 @@ body {
 }
 
 /* GST NOTE */
+.header-section {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.header-section img {
+  height: 40px;
+  margin-bottom: 5px;
+}
+
+.header-section div {
+  line-height: 1.2;
+}
+
+.header-section .company-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2f9e75;
+}
+
+.header-section .tagline {
+  font-size: 10px;
+  color: #666;
+}
+
 .gst-note {
   text-align: center;
   font-size: 10px;
