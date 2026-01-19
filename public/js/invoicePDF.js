@@ -154,10 +154,10 @@ class InvoicePDFManager {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
-    // Add logo on the left if available
+    // Add logo on the left if available (smaller size)
     if (this.logoBase64) {
       try {
-        pdf.addImage(this.logoBase64, 'PNG', 10, 5, 30, 10);
+        pdf.addImage(this.logoBase64, 'PNG', 10, 5, 20, 8);
       } catch (e) {
         console.warn('Could not add logo to PDF:', e);
       }
@@ -274,46 +274,12 @@ body {
   break-inside: avoid !important;
 }
 
-/* HEADER */
-.header-section {
-  text-align: center;
-  padding: 20px 0;
-  background: linear-gradient(135deg, #f8fffe 0%, #ffffff 100%);
-  border-radius: 8px;
-  margin-bottom: 25px;
-  border: 2px solid #2f9e75;
-}
-
-.logo-wrapper {
-  margin-bottom: 12px;
-}
-
-.logo-wrapper img {
-  height: 55px;
-  width: auto;
-  display: inline-block;
-}
-
-.company-name {
-  font-size: 28px;
-  font-weight: 700;
-  color: #2f9e75;
-  margin: 8px 0 4px 0;
-  letter-spacing: 1px;
-}
-
-.tagline {
-  font-size: 13px;
-  color: #666;
-  font-style: italic;
-  font-weight: 500;
-}
-
 /* INVOICE INFO */
 .info-section {
   display: flex;
   justify-content: space-between;
   margin-bottom: 25px;
+  margin-top: 20px;
   padding: 18px;
   background: #f9fafb;
   border-radius: 6px;
@@ -475,15 +441,6 @@ body {
 </style>
 
 <div class="invoice-container">
-
-  <!-- HEADER -->
-  <div class="header-section no-break">
-    <div class="logo-wrapper">
-      ${this.logoBase64 ? `<img src="${this.logoBase64}" alt="AssistHealth Logo">` : ''}
-    </div>
-    <div class="company-name">AssistHealth</div>
-    <div class="tagline">Health. Assured. Always.</div>
-  </div>
 
   <!-- INVOICE INFO -->
   <div class="info-section no-break">
