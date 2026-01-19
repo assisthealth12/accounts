@@ -1,12 +1,26 @@
-// Seed default services on first run
+// Seed default services on first run (ADMIN ONLY)
 async function seedDefaultServices() {
     try {
+        // ✅ FIX: Only run for admins to avoid permission errors
+        const currentUser = firebaseAuth.currentUser;
+        if (!currentUser) {
+            console.log('No user logged in, skipping service seed');
+            return false;
+        }
+
+        // Check if user is admin
+        const userDoc = await firestore.collection('users').doc(currentUser.uid).get();
+        if (!userDoc.exists || userDoc.data().role !== 'admin') {
+            console.log('User is not admin, skipping service seed');
+            return false;
+        }
+
         const servicesSnapshot = await firestore.collection('services_master').get();
-        
+
         // Only seed if collection is empty
         if (servicesSnapshot.empty) {
             console.log('Seeding default services...');
-            
+
             const defaultServices = [
                 'Premium Membership',
                 'Basic Membership',
@@ -25,24 +39,24 @@ async function seedDefaultServices() {
                 'Online Consultation',
                 'Home Visit / Offline Consultation'
             ];
-            
+
             const batch = firestore.batch();
-            
+
             defaultServices.forEach(serviceName => {
                 const docRef = firestore.collection('services_master').doc();
                 batch.set(docRef, {
                     name: serviceName,
                     active: true,
-                    createdBy: 'system',
+                    createdBy: currentUser.uid,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             });
-            
+
             await batch.commit();
             console.log('Default services seeded successfully');
             return true;
         }
-        
+
         console.log('Services already exist, skipping seed');
         return false;
     } catch (error) {
@@ -51,11 +65,6 @@ async function seedDefaultServices() {
     }
 }
 
-// Auto-run on page load after Firebase initializes
-window.addEventListener('DOMContentLoaded', async () => {
-    // Wait for Firebase to initialize
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    await seedDefaultServices();
-});
-
+// ✅ FIX: Don't auto-run on page load, only expose as function
+// Admins can manually call window.seedDefaultServices() if needed
 window.seedDefaultServices = seedDefaultServices;

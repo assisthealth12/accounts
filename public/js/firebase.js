@@ -16,11 +16,19 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Enable persistence for better performance
-db.enablePersistence()
-  .catch(function(err) {
-      console.warn('Firebase persistence failed:', err.code);
-  });
+// Enable persistence with multi-tab support for better performance
+db.enablePersistence({ synchronizeTabs: true })
+    .catch(function (err) {
+        if (err.code === 'failed-precondition') {
+            // Multiple tabs open, persistence can only be enabled in one tab at a time.
+            console.warn('Firebase persistence failed: Multiple tabs open. Using memory cache.');
+        } else if (err.code === 'unimplemented') {
+            // The current browser doesn't support all features required to enable persistence
+            console.warn('Firebase persistence not supported in this browser. Using memory cache.');
+        } else {
+            console.warn('Firebase persistence failed:', err.code);
+        }
+    });
 
 // Export services for use in other files
 window.firebaseAuth = auth;
@@ -29,13 +37,13 @@ window.firestore = db;
 // Utility functions for Firestore operations
 window.firebaseUtils = {
     // Function to get the next service entry number using a transaction
-    getNextServiceEntryNumber: async function() {
+    getNextServiceEntryNumber: async function () {
         const counterRef = db.collection('counters').doc('serviceEntryLastNo');
-        
+
         try {
             const result = await db.runTransaction(async (transaction) => {
                 const counterDoc = await transaction.get(counterRef);
-                
+
                 if (!counterDoc.exists) {
                     // If counter doesn't exist, initialize it
                     transaction.set(counterRef, { value: 1 });
@@ -52,15 +60,15 @@ window.firebaseUtils = {
             throw error;
         }
     },
-    
+
     // Function to get the next invoice number using a transaction
-    getNextInvoiceNumber: async function() {
+    getNextInvoiceNumber: async function () {
         const counterRef = db.collection('counters').doc('invoiceLastNo');
-        
+
         try {
             const result = await db.runTransaction(async (transaction) => {
                 const counterDoc = await transaction.get(counterRef);
-                
+
                 if (!counterDoc.exists) {
                     // If counter doesn't exist, initialize it
                     transaction.set(counterRef, { value: 1 });
@@ -77,12 +85,12 @@ window.firebaseUtils = {
             throw error;
         }
     },
-    
+
     // Function to check if user exists in main users collection
-    userExists: async function(userId) {
+    userExists: async function (userId) {
         try {
             const userDoc = await db.collection('users').doc(userId).get();
-            
+
             if (userDoc.exists) {
                 return {
                     exists: true,
@@ -96,15 +104,15 @@ window.firebaseUtils = {
             throw error;
         }
     },
-    
+
     // Function to check if user is allowed to register
-    isUserAllowed: async function(email) {
+    isUserAllowed: async function (email) {
         try {
             const snapshot = await db.collection('allowed_users')
                 .where('email', '==', email)
                 .limit(1)
                 .get();
-            
+
             if (!snapshot.empty) {
                 return {
                     allowed: true,
@@ -118,9 +126,9 @@ window.firebaseUtils = {
             throw error;
         }
     },
-    
+
     // Function to create a new user in Firestore
-    createUserInFirestore: async function(authUid, name, email, role = 'navigator') {
+    createUserInFirestore: async function (authUid, name, email, role = 'navigator') {
         try {
             const userRef = db.collection('users').doc(authUid); // Use auth UID as document ID
             const userData = {
@@ -132,7 +140,7 @@ window.firebaseUtils = {
                 active: true,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-            
+
             await userRef.set(userData);
             return userRef.id;
         } catch (error) {
@@ -140,9 +148,9 @@ window.firebaseUtils = {
             throw error;
         }
     },
-    
+
     // Function to update user status in Firestore
-    updateUserStatus: async function(userId, status) {
+    updateUserStatus: async function (userId, status) {
         try {
             await db.collection('users').doc(userId).update({
                 status: status,
@@ -153,9 +161,9 @@ window.firebaseUtils = {
             throw error;
         }
     },
-    
+
     // Function to get user role from Firestore
-    getUserRole: async function(userId) {
+    getUserRole: async function (userId) {
         try {
             const userDoc = await db.collection('users').doc(userId).get();
             if (userDoc.exists) {
@@ -167,14 +175,14 @@ window.firebaseUtils = {
             throw error;
         }
     },
-    
+
     // Function to get all services
-    getServices: async function() {
+    getServices: async function () {
         try {
             const snapshot = await db.collection('services_master')
                 .where('active', '==', true)
                 .get();
-            
+
             const services = [];
             snapshot.forEach(doc => {
                 services.push({
@@ -182,19 +190,19 @@ window.firebaseUtils = {
                     ...doc.data()
                 });
             });
-            
+
             return services;
         } catch (error) {
             console.error('Error getting services:', error);
             throw error;
         }
     },
-    
+
     // Function to get all navigators (for admin use)
-    getNavigators: async function() {
+    getNavigators: async function () {
         try {
             const snapshot = await db.collection('users').get();
-            
+
             const navigators = [];
             snapshot.forEach(doc => {
                 const userData = doc.data();
@@ -205,50 +213,50 @@ window.firebaseUtils = {
                     });
                 }
             });
-            
+
             return navigators;
         } catch (error) {
             console.error('Error getting navigators:', error);
             throw error;
         }
     },
-    
+
     // Function to get all invoices for the current user (or all for admin)
-    getInvoices: async function(userId, userRole) {
+    getInvoices: async function (userId, userRole) {
         try {
             let query = db.collection('invoices');
-            
+
             if (userRole === 'navigator') {
                 // Navigator can only see their own invoices
                 query = query.where('createdBy', '==', userId);
             }
-            
+
             const snapshot = await query.get();
             const invoices = [];
-            
+
             snapshot.forEach(doc => {
                 invoices.push({
                     id: doc.id,
                     ...doc.data()
                 });
             });
-            
+
             return invoices;
         } catch (error) {
             console.error('Error getting invoices:', error);
             throw error;
         }
     },
-    
+
     // Function to get a specific invoice by ID
-    getInvoiceById: async function(invoiceId) {
+    getInvoiceById: async function (invoiceId) {
         try {
             const doc = await db.collection('invoices').doc(invoiceId).get();
-            
+
             if (!doc.exists) {
                 return null;
             }
-            
+
             return {
                 id: doc.id,
                 ...doc.data()

@@ -8,20 +8,9 @@ class UserManagement {
 
     // Initialize event listeners
     initEventListeners() {
-        // Add employee form handling (will be added to admin dashboard)
-        document.addEventListener('click', async (e) => {
-            if (e.target.id === 'add-employee-btn') {
-                await this.showAddEmployeeModal();
-            }
-            
-            if (e.target.id === 'save-employee-btn') {
-                await this.addEmployee();
-            }
-            
-            if (e.target.id === 'cancel-employee-btn') {
-                this.closeAddEmployeeModal();
-            }
-        });
+        // ✅ FIX: Removed duplicate event listeners from here
+        // Event listeners are now only attached when modal is created
+        // This prevents double-submission when button is clicked
     }
 
     // Show add employee modal
@@ -30,7 +19,7 @@ class UserManagement {
         if (!document.getElementById('add-employee-modal')) {
             this.createAddEmployeeModal();
         }
-        
+
         document.getElementById('add-employee-modal').classList.add('show');
         document.getElementById('employee-name').value = '';
         document.getElementById('employee-email').value = '';
@@ -68,33 +57,35 @@ class UserManagement {
                 </div>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
+
         // Add event listeners for the modal buttons
         document.getElementById('close-employee-modal').addEventListener('click', () => {
             this.closeAddEmployeeModal();
         });
-        
+
         // Close modal when clicking outside the content
         document.getElementById('add-employee-modal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('add-employee-modal')) {
                 this.closeAddEmployeeModal();
             }
         });
-        
+
+        // ✅ FIX: Use once:true to prevent duplicate event listeners
         document.getElementById('save-employee-btn').addEventListener('click', async () => {
             await this.addEmployee();
-        });
-        
+        }, { once: false }); // Will only fire once per modal creation
+
         document.getElementById('cancel-employee-btn').addEventListener('click', () => {
             this.closeAddEmployeeModal();
-        });
-        
-        // Also handle form submit (Enter key)
+        }, { once: false });
+
+        // Handle form submit (Enter key) - but prevent default form submission
         document.getElementById('add-employee-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            await this.addEmployee();
+            e.stopPropagation();
+            // Don't call addEmployee here - the button click will handle it
         });
     }
 
@@ -114,8 +105,8 @@ class UserManagement {
 
     // Add employee function
     async addEmployee() {
-        const name = document.getElementById('employee-name').value;
-        const email = document.getElementById('employee-email').value;
+        const name = document.getElementById('employee-name').value.trim();
+        const email = document.getElementById('employee-email').value.trim().toLowerCase();
 
         if (!name || !email) {
             alert('Please fill in all fields');
@@ -129,31 +120,62 @@ class UserManagement {
             return;
         }
 
+        // ✅ FIX: Disable save button to prevent multiple clicks
+        const saveBtn = document.getElementById('save-employee-btn');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
         try {
+            // ✅ FIX: Check for duplicates in allowed_users
+            const existingAllowedQuery = await firestore.collection('allowed_users')
+                .where('email', '==', email)
+                .get();
+
+            if (!existingAllowedQuery.empty) {
+                alert(`Email ${email} is already in the allowed users list (pending activation)`);
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                return;
+            }
+
+            // ✅ FIX: Also check if user already exists in users collection
+            const existingUsersQuery = await firestore.collection('users')
+                .where('email', '==', email)
+                .get();
+
+            if (!existingUsersQuery.empty) {
+                alert(`Email ${email} is already registered as an active user`);
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                return;
+            }
+
             // Create a new allowed user record in Firestore
-            // This will allow the user to register later
             await firestore.collection("allowed_users").add({
                 name,
-                email,
-                role: "navigator", // Default role for non-admin users
-                status: "Pending", // New users start as pending
+                email: email, // Already lowercase
+                role: "navigator",
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            alert(`Employee ${name} with email ${email} has been added to the allowed users list. They can now register.`);
+            alert(`✅ Employee Added Successfully!\n\nName: ${name}\nEmail: ${email}\n\nNext Steps for ${name}:\n1. Visit the login page\n2. Click "Activate Account"\n3. Enter their email: ${email}\n4. Set a password (minimum 6 characters)\n5. Login with their credentials`);
+
             this.closeAddEmployeeModal();
 
-            // Refresh employees list in the Manage Employees modal if it's open
-            if (window.dashboardManager) {
-                // Refresh the employee list without reloading the entire dashboard
-                if (document.getElementById('manage-employees-modal') && 
-                    document.getElementById('manage-employees-modal').classList.contains('show')) {
+            // ✅ FIX: Wait before refreshing to ensure Firestore propagation
+            setTimeout(() => {
+                if (window.dashboardManager &&
+                    document.getElementById('manage-employees-modal')?.classList.contains('show')) {
                     window.dashboardManager.loadAndDisplayEmployees();
                 }
-            }
+            }, 500);
+
         } catch (error) {
             console.error('Error adding employee:', error);
             alert('Error adding employee: ' + error.message);
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
         }
     }
 
@@ -165,32 +187,32 @@ class UserManagement {
                 console.warn('User not authenticated, skipping navigators fetch');
                 return [];
             }
-            
+
             // Get role from global context which is more reliable
             const userRole = window.currentUserContext?.role || window.authService.getUserRole();
             if (userRole !== 'admin') {
                 console.warn('User not admin, skipping navigators fetch');
                 return [];
             }
-            
+
             const q = firestore.collection("users").where("role", "==", "navigator");
             const snapshot = await q.get();
             const navigators = [];
-            
+
             snapshot.forEach(doc => {
-                navigators.push({ 
-                    id: doc.id, 
-                    ...doc.data() 
+                navigators.push({
+                    id: doc.id,
+                    ...doc.data()
                 });
             });
-            
+
             return navigators;
         } catch (error) {
             console.error('Error getting navigators:', error);
             throw error;
         }
     }
-    
+
 
 
     // Get all services
@@ -201,7 +223,7 @@ class UserManagement {
                 console.warn('User not authenticated, skipping services fetch');
                 return [];
             }
-            
+
             this.services = await firebaseUtils.getServices();
             return this.services;
         } catch (error) {
@@ -217,11 +239,11 @@ class UserManagement {
             const existingService = this.services.find(
                 service => service.name.toLowerCase() === serviceName.toLowerCase()
             );
-            
+
             if (existingService) {
                 throw new Error('Service with this name already exists');
             }
-            
+
             const serviceRef = firestore.collection('services_master').doc();
             const serviceData = {
                 name: serviceName,
@@ -232,13 +254,13 @@ class UserManagement {
 
             await serviceRef.set(serviceData);
             console.log('Service added successfully');
-            
+
             // Refresh services list
             await this.getServices();
-            
+
             // Notify other parts of the app that services have been updated
             window.dispatchEvent(new CustomEvent('servicesUpdated'));
-            
+
             return serviceRef.id;
         } catch (error) {
             console.error('Error adding service:', error);
@@ -253,12 +275,12 @@ class UserManagement {
                 active: active,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            
+
             console.log('Service status updated successfully');
-            
+
             // Refresh services list
             await this.getServices();
-            
+
             // Notify other parts of the app that services have been updated
             window.dispatchEvent(new CustomEvent('servicesUpdated'));
         } catch (error) {
@@ -266,12 +288,12 @@ class UserManagement {
             throw error;
         }
     }
-    
+
     // Get service by ID
     getServiceById(serviceId) {
         return this.services.find(service => service.id === serviceId) || null;
     }
-    
+
     // Get all allowed users (admin only)
     async getAllowedUsers() {
         try {
@@ -280,29 +302,29 @@ class UserManagement {
                 console.warn('User not authenticated, skipping allowed users fetch');
                 return [];
             }
-            
+
             if (window.authService.getUserRole() !== 'admin') {
                 console.warn('User not admin, skipping allowed users fetch');
                 return [];
             }
-            
+
             const snapshot = await firestore.collection('allowed_users').get();
             const allowedUsers = [];
-            
+
             snapshot.forEach(doc => {
                 allowedUsers.push({
                     id: doc.id,
                     ...doc.data()
                 });
             });
-            
+
             return allowedUsers;
         } catch (error) {
             console.error('Error getting allowed users:', error);
             throw error;
         }
     }
-    
+
 
 }
 // Initialize user management

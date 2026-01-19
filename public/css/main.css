@@ -692,6 +692,11 @@ tr:hover {
     color: #721c24;
 }
 
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
 /* Enhanced Table Styles */
 table {
     width: 100%;
@@ -756,6 +761,24 @@ tr:last-child td {
 }
 
 .btn-delete:hover {
+    background-color: #c0392b;
+}
+
+.btn-activate {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.btn-activate:hover {
+    background-color: #27ae60;
+}
+
+.btn-deactivate {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-deactivate:hover {
     background-color: #c0392b;
 }
 

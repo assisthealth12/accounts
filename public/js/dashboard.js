@@ -15,7 +15,7 @@ class DashboardManager {
         this.providersEventListenersAdded = false;
         this.originalDashboardContent = null;
         this.currentScreen = 'dashboard'; // Track current screen
-        
+
         this.initDashboard();
     }
 
@@ -26,7 +26,7 @@ class DashboardManager {
             try {
                 // Create initial screens
                 this.createScreen('dashboard');
-                
+
                 this.setupEventListeners();
             } catch (error) {
                 console.error('Error in dashboard initialization:', error);
@@ -51,7 +51,7 @@ class DashboardManager {
                 this.applyFilters();
             });
         }
-        
+
         // Reset filters button
         const resetFiltersBtn = document.getElementById('reset-filters-btn');
         if (resetFiltersBtn) {
@@ -59,7 +59,7 @@ class DashboardManager {
                 this.resetFilters();
             });
         }
-        
+
         // Date preset buttons
         const presetButtons = document.querySelectorAll('.date-presets button');
         presetButtons.forEach(button => {
@@ -67,7 +67,7 @@ class DashboardManager {
                 this.applyDatePreset(e.target.dataset.preset);
             });
         });
-        
+
         // Download Excel button
         const downloadExcelBtn = document.getElementById('download-excel-btn');
         if (downloadExcelBtn) {
@@ -96,10 +96,10 @@ class DashboardManager {
         const today = new Date().toISOString().split('T')[0];
         const startDateInput = document.getElementById('filter-start-date');
         const endDateInput = document.getElementById('filter-end-date');
-        
+
         if (startDateInput) startDateInput.value = today;
         if (endDateInput) endDateInput.value = today;
-        
+
     }
 
 
@@ -107,14 +107,14 @@ class DashboardManager {
     async loadAdminDashboard() {
         this.currentUserRole = 'admin';
         document.getElementById('dashboard-title').textContent = 'Admin Dashboard';
-        
+
         // Update sidebar navigation for admin
         this.updateSidebarNavigation('admin');
-        
+
         // Load all data
         await this.loadData();
         await this.renderDashboard();
-        
+
         // Set up Firestore listeners for real-time updates
         this.setupRealTimeListeners();
     }
@@ -123,14 +123,14 @@ class DashboardManager {
     async loadNavigatorDashboard() {
         this.currentUserRole = 'navigator';
         document.getElementById('dashboard-title').textContent = 'Navigator Dashboard';
-        
+
         // Update sidebar navigation for navigator
         this.updateSidebarNavigation('navigator');
-        
+
         // Load navigator's data only
         await this.loadData();
         await this.renderDashboard();
-        
+
         // Set up Firestore listeners for real-time updates
         this.setupRealTimeListeners();
     }
@@ -139,7 +139,7 @@ class DashboardManager {
     updateSidebarNavigation(role) {
         const sidebarNav = document.getElementById('sidebar-nav');
         let navItems = '';
-        
+
         if (role === 'admin') {
             navItems = `
                 <li class="active" id="dashboard-nav">Dashboard</li>
@@ -154,9 +154,9 @@ class DashboardManager {
                 <li id="invoice-generator">Invoice Generator</li>
             `;
         }
-        
+
         sidebarNav.innerHTML = navItems;
-        
+
         // Add event listeners to new navigation items
         document.getElementById('dashboard-nav').addEventListener('click', () => {
             // Close any open modals
@@ -164,17 +164,17 @@ class DashboardManager {
                 modal.classList.remove('show');
                 setTimeout(() => modal.style.display = 'none', 300);
             });
-            
+
             // Switch to dashboard screen
             this.switchToScreen('dashboard');
-            
+
             // Update active nav
             this.updateActiveNav(null);
-            
+
             // Refresh dashboard data
             this.updateDashboard();
         });
-        
+
         if (role === 'admin') {
             const manageEmployeesEl = document.getElementById('manage-employees');
             if (manageEmployeesEl) {
@@ -182,7 +182,7 @@ class DashboardManager {
                     this.showManageEmployees();
                 });
             }
-            
+
             const manageProvidersEl = document.getElementById('manage-providers');
             if (manageProvidersEl) {
                 manageProvidersEl.addEventListener('click', () => {
@@ -190,7 +190,7 @@ class DashboardManager {
                 });
             }
         }
-        
+
         // Invoice generator navigation
         const invoiceGeneratorEl = document.getElementById('invoice-generator');
         if (invoiceGeneratorEl) {
@@ -198,7 +198,7 @@ class DashboardManager {
                 this.showInvoiceGenerator();
             });
         }
-        
+
         // Only admin can manage services
         if (role === 'admin') {
             const manageServicesEl = document.getElementById('manage-services');
@@ -217,24 +217,30 @@ class DashboardManager {
             alert('Access denied: Only admins can manage employees');
             return;
         }
-        
+
         // Create modal for managing employees if it doesn't exist
         if (!document.getElementById('manage-employees-modal')) {
             this.createManageEmployeesModal();
         }
-        
+
         const modal = document.getElementById('manage-employees-modal');
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('show'), 10);
-        
+
         this.updateActiveNav('manage-employees');
-        
+
         // Load and display employees
         this.loadAndDisplayEmployees();
     }
 
     // Create manage employees modal
     createManageEmployeesModal() {
+        // ✅ FIX: Remove old modal if it exists to prevent duplicates
+        const existingModal = document.getElementById('manage-employees-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
         const modalHTML = `
             <div id="manage-employees-modal" class="modal">
                 <div class="modal-content">
@@ -261,6 +267,7 @@ class DashboardManager {
                                         <th>Name</th>
                                         <th>Email</th>
                                         <th>Role</th>
+                                        <th>Status</th>
                                         <th>Created</th>
                                     </tr>
                                 </thead>
@@ -273,27 +280,23 @@ class DashboardManager {
                 </div>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
-        // Show modal with animation
-        const modal = document.getElementById('manage-employees-modal');
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('show'), 10);
-        
+
         // Event listeners
+        const modal = document.getElementById('manage-employees-modal');
         document.getElementById('close-employees-modal').addEventListener('click', () => {
             this.closeModalWithAnimation('manage-employees-modal');
             this.updateActiveNav(null);
         });
-        
+
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 this.closeModalWithAnimation('manage-employees-modal');
                 this.updateActiveNav(null);
             }
         });
-        
+
         document.getElementById('add-employee-btn').addEventListener('click', async () => {
             await window.userManagement.showAddEmployeeModal();
         });
@@ -305,52 +308,117 @@ class DashboardManager {
             const tableBody = document.getElementById('employees-table-body');
             const loadingDiv = document.getElementById('employees-loading');
             const emptyDiv = document.getElementById('employees-empty');
-            
+
             if (!tableBody) return;
-            
-            // Show loading state
+
+            // ✅ CRITICAL FIX: Clear table body FIRST to prevent duplicates
             tableBody.innerHTML = '';
-            loadingDiv.style.display = 'block';
-            emptyDiv.style.display = 'none';
-            
-            // Get allowed users instead of navigators for employee management
-            const allowedUsers = await window.userManagement.getAllowedUsers();
-            
+
+            // Show loading state
+            if (loadingDiv) loadingDiv.style.display = 'block';
+            if (emptyDiv) emptyDiv.style.display = 'none';
+
+            // Get both active users AND pending allowed users
+            const [activeUsers, allowedUsers] = await Promise.all([
+                firestore.collection('users').where('role', '==', 'navigator').get(),
+                firestore.collection('allowed_users').get()
+            ]);
+
+            // ✅ FIX: Use a Map to prevent duplicate emails
+            const employeesMap = new Map();
+
+            // Add active users (these take priority over pending)
+            activeUsers.forEach(doc => {
+                const data = doc.data();
+                const email = (data.email || '').toLowerCase();
+
+                if (email && !employeesMap.has(email)) {
+                    employeesMap.set(email, {
+                        id: doc.id,
+                        name: data.name,
+                        email: data.email,
+                        role: data.role,
+                        status: 'Active',
+                        createdAt: data.createdAt,
+                        isActive: true,
+                        priority: 1 // Active users have higher priority
+                    });
+                }
+            });
+
+            // Add pending users (only if not already active)
+            allowedUsers.forEach(doc => {
+                const data = doc.data();
+                const email = (data.email || '').toLowerCase();
+
+                // Only add if not already in map (i.e., not already active)
+                if (email && !employeesMap.has(email)) {
+                    employeesMap.set(email, {
+                        id: doc.id,
+                        name: data.name,
+                        email: data.email,
+                        role: data.role || 'navigator',
+                        status: 'Pending Activation',
+                        createdAt: data.createdAt,
+                        isActive: false,
+                        priority: 2 // Pending users have lower priority
+                    });
+                }
+            });
+
+            // Convert Map to Array
+            const allEmployees = Array.from(employeesMap.values());
+
             // Hide loading state
-            loadingDiv.style.display = 'none';
-            
-            if (allowedUsers.length === 0) {
-                emptyDiv.style.display = 'block';
+            if (loadingDiv) loadingDiv.style.display = 'none';
+
+            if (allEmployees.length === 0) {
+                if (emptyDiv) emptyDiv.style.display = 'block';
                 return;
             }
-            
-            emptyDiv.style.display = 'none';
-            
-            allowedUsers.forEach(user => {
-                const row = document.createElement('tr');
-                
-                // Format date
-                const createdAt = user.createdAt ? 
-                    user.createdAt.toDate().toLocaleDateString() : 
-                    'N/A';
-                
 
-                
+            if (emptyDiv) emptyDiv.style.display = 'none';
+
+            // Sort by priority (Active first), then by creation date (newest first)
+            allEmployees.sort((a, b) => {
+                if (a.priority !== b.priority) {
+                    return a.priority - b.priority;
+                }
+                // Sort by date - newest first
+                const aTime = a.createdAt?.toMillis() || 0;
+                const bTime = b.createdAt?.toMillis() || 0;
+                return bTime - aTime;
+            });
+
+            // Render table rows
+            allEmployees.forEach(user => {
+                const row = document.createElement('tr');
+
+                const createdAt = user.createdAt ?
+                    user.createdAt.toDate().toLocaleDateString() :
+                    'N/A';
+
+                const statusClass = user.isActive ? 'status-active' : 'status-pending';
+
                 row.innerHTML = `
                     <td>${user.name || 'N/A'}</td>
                     <td>${user.email || 'N/A'}</td>
                     <td>${user.role || 'navigator'}</td>
+                    <td><span class="status ${statusClass}">${user.status}</span></td>
                     <td>${createdAt}</td>
                 `;
-                
+
                 tableBody.appendChild(row);
             });
+
+            console.log(`✅ Loaded ${allEmployees.length} unique employees (${employeesMap.size} unique emails)`);
+
         } catch (error) {
             console.error('Error loading employees:', error);
-            
+
             const loadingDiv = document.getElementById('employees-loading');
             const emptyDiv = document.getElementById('employees-empty');
-            
+
             if (loadingDiv) loadingDiv.style.display = 'none';
             if (emptyDiv) {
                 emptyDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i><h4>Error loading employees</h4><p>${error.message}</p>`;
@@ -367,13 +435,13 @@ class DashboardManager {
                 window.invoiceGeneratorManager.createInvoiceGeneratorScreen();
             }
         }
-        
+
         // Switch to invoice screen
         this.switchToScreen('invoice-generator');
-        
+
         // Update active nav
         this.updateActiveNav('invoice-generator');
-        
+
         // Load invoices
         if (window.invoiceGeneratorManager) {
             // Small delay to ensure screen is properly displayed before loading invoices
@@ -382,7 +450,7 @@ class DashboardManager {
             }, 100);
         }
     }
-    
+
     // Show manage services section (admin only)
     showManageServices() {
         // Check if user is admin
@@ -390,16 +458,16 @@ class DashboardManager {
             alert('Access denied: Only admins can manage services');
             return;
         }
-        
+
         // Create modal if it doesn't exist
         if (!document.getElementById('manage-services-modal')) {
             this.createManageServicesModal();
         }
-        
+
         const modal = document.getElementById('manage-services-modal');
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('show'), 10);
-        
+
         this.updateActiveNav('manage-services');
         this.loadAndDisplayServices();
     }
@@ -448,17 +516,17 @@ class DashboardManager {
                 </div>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
+
         // Add event listeners
         document.getElementById('close-services-modal').addEventListener('click', () => {
             this.closeModalWithAnimation('manage-services-modal');
-            
+
             // Remove active state from navigation
             this.updateActiveNav(null);
         });
-        
+
         // Close modal when clicking outside the content
         document.getElementById('manage-services-modal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('manage-services-modal')) {
@@ -466,7 +534,7 @@ class DashboardManager {
                 this.updateActiveNav(null);
             }
         });
-        
+
         document.getElementById('add-service-btn').addEventListener('click', async () => {
             const serviceName = document.getElementById('new-service-name').value.trim();
             if (serviceName) {
@@ -482,14 +550,14 @@ class DashboardManager {
                 alert('Please enter a service name');
             }
         });
-        
+
         // Also handle Enter key press in the input field
         document.getElementById('new-service-name').addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
                 await document.getElementById('add-service-btn').click();
             }
         });
-        
+
         // Show modal with animation
         const modal = document.getElementById('manage-services-modal');
         modal.style.display = 'flex';
@@ -502,13 +570,13 @@ class DashboardManager {
             alert('Access denied: Only admins can manage healthcare providers');
             return;
         }
-        
+
         this.createManageProvidersModal();
-        
+
         const modal = document.getElementById('manage-providers-modal');
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('show'), 10);
-        
+
         this.updateActiveNav('manage-providers');
         this.loadAndDisplayProviders();
     }
@@ -561,19 +629,19 @@ class DashboardManager {
                     </div>
                 </div>
             `;
-            
+
             document.body.insertAdjacentHTML('beforeend', modalHTML);
         }
-        
+
         // Add event listeners if not already added
         if (!this.providersEventListenersAdded) {
             document.getElementById('close-providers-modal').addEventListener('click', () => {
                 this.closeModalWithAnimation('manage-providers-modal');
-                
+
                 // Remove active state from navigation
                 this.updateActiveNav(null);
             });
-            
+
             // Close modal when clicking outside the content
             document.getElementById('manage-providers-modal').addEventListener('click', (e) => {
                 if (e.target === document.getElementById('manage-providers-modal')) {
@@ -581,7 +649,7 @@ class DashboardManager {
                     this.updateActiveNav(null);
                 }
             });
-            
+
             document.getElementById('add-provider-btn').addEventListener('click', async () => {
                 const providerName = document.getElementById('new-provider-name').value.trim();
                 if (providerName) {
@@ -602,17 +670,17 @@ class DashboardManager {
                     alert('Please enter a provider name');
                 }
             });
-            
+
             // Also handle Enter key press in the input field
             document.getElementById('new-provider-name').addEventListener('keypress', async (e) => {
                 if (e.key === 'Enter') {
                     await document.getElementById('add-provider-btn').click();
                 }
             });
-            
+
             this.providersEventListenersAdded = true;
         }
-        
+
         // Show modal with animation
         const modal = document.getElementById('manage-providers-modal');
         modal.style.display = 'flex';
@@ -625,37 +693,37 @@ class DashboardManager {
             const tableBody = document.getElementById('providers-table-body');
             const loadingDiv = document.getElementById('providers-loading');
             const emptyDiv = document.getElementById('providers-empty');
-            
+
             if (!tableBody) return;
-            
+
             // Show loading state
             tableBody.innerHTML = '';
             loadingDiv.style.display = 'block';
             emptyDiv.style.display = 'none';
-            
+
             const providers = await window.healthcareProviderManager.getProviders();
-            
+
             // Hide loading state
             loadingDiv.style.display = 'none';
-            
+
             if (providers.length === 0) {
                 emptyDiv.style.display = 'block';
                 return;
             }
-            
+
             emptyDiv.style.display = 'none';
-            
+
             providers.forEach(provider => {
                 const row = document.createElement('tr');
-                
+
                 // Format date
-                const createdAt = provider.createdAt ? 
-                    provider.createdAt.toDate().toLocaleDateString() : 
+                const createdAt = provider.createdAt ?
+                    provider.createdAt.toDate().toLocaleDateString() :
                     'N/A';
-                
+
                 const statusText = provider.active ? 'Active' : 'Inactive';
                 const statusClass = provider.active ? 'status-active' : 'status-inactive';
-                
+
                 row.innerHTML = `
                     <td>${provider.name || 'N/A'}</td>
                     <td>${provider.contact || 'N/A'}</td>
@@ -668,16 +736,16 @@ class DashboardManager {
                         </button>
                     </td>
                 `;
-                
+
                 tableBody.appendChild(row);
             });
-            
+
             // Add event listeners to action buttons
             document.querySelectorAll('#providers-table-body .btn-edit').forEach(button => {
                 button.addEventListener('click', async (e) => {
                     const providerId = e.target.getAttribute('data-provider-id');
                     const currentActive = e.target.getAttribute('data-active') === 'true';
-                    
+
                     try {
                         await window.healthcareProviderManager.updateProviderStatus(providerId, !currentActive);
                         this.loadAndDisplayProviders(); // Refresh the list
@@ -689,10 +757,10 @@ class DashboardManager {
             });
         } catch (error) {
             console.error('Error loading providers:', error);
-            
+
             const loadingDiv = document.getElementById('providers-loading');
             const emptyDiv = document.getElementById('providers-empty');
-            
+
             if (loadingDiv) loadingDiv.style.display = 'none';
             if (emptyDiv) {
                 emptyDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i><h4>Error loading providers</h4><p>${error.message}</p>`;
@@ -707,40 +775,40 @@ class DashboardManager {
             const tableBody = document.getElementById('services-table-body');
             const loadingDiv = document.getElementById('services-loading');
             const emptyDiv = document.getElementById('services-empty');
-            
+
             if (!tableBody) return;
-            
+
             // Show loading state
             tableBody.innerHTML = '';
             loadingDiv.style.display = 'block';
             emptyDiv.style.display = 'none';
-            
+
             const services = await window.userManagement.getServices();
-            
+
             // Hide loading state
             loadingDiv.style.display = 'none';
-            
+
             if (services.length === 0) {
                 emptyDiv.style.display = 'block';
                 return;
             }
-            
+
             emptyDiv.style.display = 'none';
-            
+
             services.forEach(service => {
                 const row = document.createElement('tr');
-                
+
                 // Format date
-                const createdAt = service.createdAt ? 
-                    service.createdAt.toDate().toLocaleDateString() : 
+                const createdAt = service.createdAt ?
+                    service.createdAt.toDate().toLocaleDateString() :
                     'N/A';
-                
+
                 const statusText = service.active ? 'Active' : 'Inactive';
                 const statusClass = service.active ? 'status-active' : 'status-inactive';
-                
+
                 // Check user role to determine if they can manage service status
                 const canManageStatus = this.currentUserRole === 'admin';
-                
+
                 row.innerHTML = `
                     <td>${service.name || 'N/A'}</td>
                     <td><span class="status ${statusClass}">${statusText}</span></td>
@@ -752,17 +820,17 @@ class DashboardManager {
                         </button>` : ''}
                     </td>
                 `;
-                
+
                 tableBody.appendChild(row);
             });
-            
+
             // Add event listeners to action buttons (only for admin)
             if (this.currentUserRole === 'admin') {
                 document.querySelectorAll('#services-table-body .btn-edit').forEach(button => {
                     button.addEventListener('click', async (e) => {
                         const serviceId = e.target.getAttribute('data-service-id');
                         const currentActive = e.target.getAttribute('data-active') === 'true';
-                        
+
                         try {
                             await window.userManagement.updateServiceStatus(serviceId, !currentActive);
                             this.loadAndDisplayServices(); // Refresh the list
@@ -775,10 +843,10 @@ class DashboardManager {
             }
         } catch (error) {
             console.error('Error loading services:', error);
-            
+
             const loadingDiv = document.getElementById('services-loading');
             const emptyDiv = document.getElementById('services-empty');
-            
+
             if (loadingDiv) loadingDiv.style.display = 'none';
             if (emptyDiv) {
                 emptyDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i><h4>Error loading services</h4><p>${error.message}</p>`;
@@ -792,20 +860,20 @@ class DashboardManager {
         try {
             // Get current user
             this.currentUser = window.authService.getCurrentUser();
-            
+
             // Check if user is authenticated before loading services
             if (!this.currentUser) {
                 console.warn('User not authenticated, cannot load data');
                 return;
             }
-            
+
             // Load services
             this.services = await window.userManagement.getServices();
-            
+
             // Load navigators if admin
             if (this.currentUserRole === 'admin') {
                 this.navigators = await window.userManagement.getNavigators();
-                
+
                 // Load all entries for admin
                 const snapshot = await firestore.collection('service_entries').get();
                 this.entries = [];
@@ -821,7 +889,7 @@ class DashboardManager {
                     .collection('service_entries')
                     .where('navigatorId', '==', this.currentUser.uid)
                     .get();
-                
+
                 this.entries = [];
                 snapshot.forEach(doc => {
                     this.entries.push({
@@ -830,10 +898,10 @@ class DashboardManager {
                     });
                 });
             }
-            
+
             // Populate filter dropdowns
             this.populateFilterDropdowns();
-            
+
             // Apply initial filters
             this.applyFilters();
         } catch (error) {
@@ -847,7 +915,7 @@ class DashboardManager {
         if (serviceTypeFilter) {
             // Clear existing options except the first one
             serviceTypeFilter.innerHTML = '<option value="">All</option>';
-            
+
             this.services.forEach(service => {
                 const option = document.createElement('option');
                 option.value = service.id;
@@ -855,17 +923,17 @@ class DashboardManager {
                 serviceTypeFilter.appendChild(option);
             });
         }
-        
+
         // Populate healthcare providers filter
         const hcpFilter = document.getElementById('filter-hcp');
         if (hcpFilter) {
             try {
                 // Get active healthcare providers
                 const providers = await window.healthcareProviderManager.getActiveProviders();
-                
+
                 // Clear existing options except the first one
                 hcpFilter.innerHTML = '<option value="">All</option>';
-                
+
                 providers.forEach(provider => {
                     const option = document.createElement('option');
                     option.value = provider.name;
@@ -876,18 +944,18 @@ class DashboardManager {
                 console.error('Error loading healthcare providers for filter:', error);
             }
         }
-        
+
         // Show/hide navigator filter based on role
         const navigatorFilter = document.getElementById('navigator-filter');
         if (navigatorFilter) {
             if (this.currentUserRole === 'admin') {
                 navigatorFilter.style.display = 'flex';
-                
+
                 const navigatorSelect = document.getElementById('filter-navigator');
                 if (navigatorSelect) {
                     // Clear existing options except the first one
                     navigatorSelect.innerHTML = '<option value="">All</option>';
-                    
+
                     this.navigators.forEach(navigator => {
                         const option = document.createElement('option');
                         option.value = navigator.uid;
@@ -908,7 +976,7 @@ class DashboardManager {
         const originalText = applyBtn.innerHTML;
         applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
         applyBtn.disabled = true;
-        
+
         try {
             const startDate = document.getElementById('filter-start-date').value;
             const endDate = document.getElementById('filter-end-date').value;
@@ -917,9 +985,9 @@ class DashboardManager {
             const hcpFilter = document.getElementById('filter-hcp').value;
             const collectedBy = document.getElementById('filter-collected-by').value;
             const referralStatus = document.getElementById('filter-referral-status').value;
-            const navigatorFilter = this.currentUserRole === 'admin' ? 
+            const navigatorFilter = this.currentUserRole === 'admin' ?
                 document.getElementById('filter-navigator').value : null;
-            
+
             // Filter entries
             this.filteredEntries = this.entries.filter(entry => {
                 // Date filter
@@ -933,43 +1001,43 @@ class DashboardManager {
                         }
                     }
                 }
-                
+
                 // Service type filter
                 if (serviceType && entry.serviceTypeId !== serviceType) {
                     return false;
                 }
-                
+
                 // Package type filter
                 if (packageType && entry.packageType !== packageType) {
                     return false;
                 }
-                
+
                 // Healthcare provider filter
                 if (hcpFilter && entry.hcpName !== hcpFilter) {
                     return false;
                 }
-                
+
                 // Collected by filter
                 if (collectedBy && (!entry.collectionDetails || entry.collectionDetails.collectedBy !== collectedBy)) {
                     return false;
                 }
-                
+
                 // Referral status filter
                 if (referralStatus && entry.referralStatus !== referralStatus) {
                     return false;
                 }
-                
+
                 // Navigator filter (admin only)
                 if (this.currentUserRole === 'admin' && navigatorFilter && entry.navigatorId !== navigatorFilter) {
                     return false;
                 }
-                
+
                 return true;
             });
-            
+
             // Update dashboard
             this.updateDashboard();
-            
+
             // Show success feedback
             applyBtn.innerHTML = '<i class="fas fa-check"></i> Applied';
             setTimeout(() => {
@@ -989,13 +1057,13 @@ class DashboardManager {
         try {
             // Switch to dashboard screen
             this.switchToScreen('dashboard');
-            
+
             // Update summary cards
             this.updateSummaryCards();
-            
+
             // Update charts
             this.updateCharts();
-            
+
             // Update table
             if (window.tableManager && typeof window.tableManager.updateTable === 'function') {
                 window.tableManager.updateTable(this.filteredEntries);
@@ -1004,7 +1072,7 @@ class DashboardManager {
             console.error('Error updating dashboard:', error);
         }
     }
-    
+
     // Reset all filters
     resetFilters() {
         // Add visual feedback
@@ -1012,37 +1080,37 @@ class DashboardManager {
         const originalText = resetBtn.innerHTML;
         resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
         resetBtn.disabled = true;
-        
+
         try {
             // Reset date filters to today
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('filter-start-date').value = today;
             document.getElementById('filter-end-date').value = today;
-            
+
             // Reset service type
             document.getElementById('filter-service-type').value = '';
-            
+
             // Reset other filters
             document.getElementById('filter-package-type').value = '';
-            
+
             // Reset HCP
             document.getElementById('filter-hcp').value = '';
-            
+
             // Reset collected by
             document.getElementById('filter-collected-by').value = '';
-            
+
             // Reset referral status
             document.getElementById('filter-referral-status').value = '';
-            
+
             // Reset navigator filter if it exists
             const navigatorFilter = document.getElementById('filter-navigator');
             if (navigatorFilter) {
                 navigatorFilter.value = '';
             }
-            
+
             // Apply the reset filters (which means no filters)
             this.applyFilters();
-            
+
             // Show success feedback
             resetBtn.innerHTML = '<i class="fas fa-check"></i> Reset';
             setTimeout(() => {
@@ -1056,18 +1124,18 @@ class DashboardManager {
             alert('Error resetting filters: ' + error.message);
         }
     }
-    
+
     // Apply date preset
     applyDatePreset(preset) {
         const startDateInput = document.getElementById('filter-start-date');
         const endDateInput = document.getElementById('filter-end-date');
-        
+
         if (!startDateInput || !endDateInput) return;
-        
+
         const today = new Date();
         let startDate = new Date(today);
-        
-        switch(preset) {
+
+        switch (preset) {
             case 'today':
                 // For today, both start and end date are today
                 startDateInput.value = today.toISOString().split('T')[0];
@@ -1090,11 +1158,11 @@ class DashboardManager {
                 startDateInput.value = today.toISOString().split('T')[0];
                 endDateInput.value = today.toISOString().split('T')[0];
         }
-        
+
         // After setting the dates, apply the filters automatically
         this.applyFilters();
     }
-    
+
     // Update summary cards
     updateSummaryCards() {
         let totalBillAmount = 0;
@@ -1102,18 +1170,18 @@ class DashboardManager {
         let referralReceived = 0;
         let totalPaid = 0;
         let pendingPayment = 0;
-        
+
         this.filteredEntries.forEach(entry => {
             totalBillAmount += entry.totalBillAmount || 0;
             totalDiscount += entry.discountGiven || 0;
-            
+
             if (entry.referralStatus === 'Received') {
                 referralReceived += entry.referralAmount || 0;
             }
-            
+
             if (entry.paymentByUs === 'Yes' && entry.paymentDetails) {
                 totalPaid += entry.paymentDetails.amountPaid || 0;
-                
+
                 if (entry.paymentDetails.paymentStatus === 'Pending') {
                     pendingPayment += entry.paymentDetails.amountPaid || 0;
                 }
@@ -1122,64 +1190,64 @@ class DashboardManager {
                 pendingPayment += entry.amountPaid || 0;
             }
         });
-        
+
         // Update card values with null checks
         const totalBillElement = document.getElementById('total-bill-amount-display');
         if (totalBillElement) {
             totalBillElement.textContent = `₹${totalBillAmount.toLocaleString()}`;
         }
-        
+
         const totalDiscountElement = document.getElementById('total-discount');
         if (totalDiscountElement) {
             totalDiscountElement.textContent = `₹${totalDiscount.toLocaleString()}`;
         }
-        
+
         const referralReceivedElement = document.getElementById('referral-received');
         if (referralReceivedElement) {
             referralReceivedElement.textContent = `₹${referralReceived.toLocaleString()}`;
         }
-        
+
         const totalPaidElement = document.getElementById('total-paid');
         if (totalPaidElement) {
             totalPaidElement.textContent = `₹${totalPaid.toLocaleString()}`;
         }
-        
+
         const pendingPaymentElement = document.getElementById('pending-payment');
         if (pendingPaymentElement) {
             pendingPaymentElement.textContent = `₹${pendingPayment.toLocaleString()}`;
         }
     }
-    
+
     // Switch between different screens
     switchToScreen(screenName) {
         // Hide the main dashboard content (summary cards, filters, charts, table)
         const mainDashboard = document.querySelector('.dashboard-content');
         const dashboardChildren = mainDashboard.children;
-        
+
         // Hide all direct children of dashboard-content
         for (let child of dashboardChildren) {
             if (!child.id || !child.id.includes('-screen')) {
                 child.style.display = 'none';
             }
         }
-        
+
         // Hide all dashboard screens
         const allScreens = document.querySelectorAll('.dashboard-screen');
         allScreens.forEach(screen => {
             screen.style.display = 'none';
         });
-        
+
         // Show requested screen or create it
         let targetScreen = document.getElementById(`${screenName}-screen`);
         if (!targetScreen) {
             this.createScreen(screenName);
             targetScreen = document.getElementById(`${screenName}-screen`);
         }
-        
+
         if (targetScreen) {
             targetScreen.style.display = 'block';
         }
-        
+
         // If returning to dashboard, show main dashboard content
         if (screenName === 'dashboard') {
             for (let child of dashboardChildren) {
@@ -1188,21 +1256,21 @@ class DashboardManager {
                 }
             }
         }
-        
+
         this.currentScreen = screenName;
     }
-    
+
     // Create screen element if it doesn't exist
     createScreen(screenName) {
         const dashboardContent = document.querySelector('.dashboard-content');
         if (!dashboardContent) return;
-        
+
         // Create screen container
         const screenElement = document.createElement('div');
         screenElement.id = `${screenName}-screen`;
         screenElement.className = 'dashboard-screen';
         screenElement.style.display = 'none';
-        
+
         // For dashboard screen, we need to create the original content
         if (screenName === 'dashboard') {
             // Create the dashboard content
@@ -1407,15 +1475,15 @@ class DashboardManager {
                 </div>
             `;
         }
-        
+
         dashboardContent.appendChild(screenElement);
-        
+
         // Setup event listeners for the dashboard screen
         if (screenName === 'dashboard') {
             this.setupDashboardEventListeners();
         }
     }
-    
+
     // Setup dashboard event listeners
     setupDashboardEventListeners() {
         // Add entry button
@@ -1433,7 +1501,7 @@ class DashboardManager {
                 this.applyFilters();
             });
         }
-        
+
         // Reset filters button
         const resetFiltersBtn = document.getElementById('reset-filters-btn');
         if (resetFiltersBtn) {
@@ -1441,7 +1509,7 @@ class DashboardManager {
                 this.resetFilters();
             });
         }
-        
+
         // Download Excel button
         const downloadExcelBtn = document.getElementById('download-excel-btn');
         if (downloadExcelBtn) {
@@ -1449,7 +1517,7 @@ class DashboardManager {
                 this.downloadExcel();
             });
         }
-        
+
         // Date preset buttons
         const presetButtons = document.querySelectorAll('.date-presets button');
         presetButtons.forEach(button => {
@@ -1458,7 +1526,7 @@ class DashboardManager {
             });
         });
     }
-    
+
     // Save original dashboard content
     saveOriginalDashboardContent() {
         // This method is no longer needed with the new approach
@@ -1478,12 +1546,12 @@ class DashboardManager {
         try {
             const ctx = document.getElementById('line-chart');
             if (!ctx) return;
-            
+
             // Destroy existing chart if it exists
             if (this.lineChart) {
                 this.lineChart.destroy();
             }
-            
+
             // Group entries by date
             const dateData = {};
             this.filteredEntries.forEach(entry => {
@@ -1493,10 +1561,10 @@ class DashboardManager {
                 }
                 dateData[dateStr] += entry.totalBillAmount || 0;
             });
-            
+
             const dates = Object.keys(dateData).sort();
             const amounts = dates.map(date => dateData[date]);
-            
+
             this.lineChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -1534,12 +1602,12 @@ class DashboardManager {
         try {
             const ctx = document.getElementById('bar-chart');
             if (!ctx) return;
-            
+
             // Destroy existing chart if it exists
             if (this.barChart) {
                 this.barChart.destroy();
             }
-            
+
             // Group entries by service type
             const serviceData = {};
             this.filteredEntries.forEach(entry => {
@@ -1549,10 +1617,10 @@ class DashboardManager {
                 }
                 serviceData[serviceName] += entry.totalBillAmount || 0;
             });
-            
+
             const serviceNames = Object.keys(serviceData);
             const amounts = Object.values(serviceData);
-            
+
             this.barChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -1590,12 +1658,12 @@ class DashboardManager {
         try {
             const ctx = document.getElementById('referral-pie-chart');
             if (!ctx) return;
-            
+
             // Destroy existing chart if it exists
             if (this.referralPieChart) {
                 this.referralPieChart.destroy();
             }
-            
+
             // Count referral statuses
             const referralCounts = { 'Pending': 0, 'Received': 0 };
             this.filteredEntries.forEach(entry => {
@@ -1604,10 +1672,10 @@ class DashboardManager {
                     referralCounts[status]++;
                 }
             });
-            
+
             const labels = Object.keys(referralCounts);
             const counts = Object.values(referralCounts);
-            
+
             this.referralPieChart = new Chart(ctx, {
                 type: 'pie',
                 data: {
@@ -1645,12 +1713,12 @@ class DashboardManager {
         try {
             const ctx = document.getElementById('payment-pie-chart');
             if (!ctx) return;
-            
+
             // Destroy existing chart if it exists
             if (this.paymentPieChart) {
                 this.paymentPieChart.destroy();
             }
-            
+
             // Count payment statuses
             const paymentCounts = { 'Pending': 0, 'Completed': 0 };
             this.filteredEntries.forEach(entry => {
@@ -1664,10 +1732,10 @@ class DashboardManager {
                     paymentCounts['Pending']++;
                 }
             });
-            
+
             const labels = Object.keys(paymentCounts);
             const counts = Object.values(paymentCounts);
-            
+
             this.paymentPieChart = new Chart(ctx, {
                 type: 'pie',
                 data: {
@@ -1711,20 +1779,20 @@ class DashboardManager {
     setupRealTimeListeners() {
         // Clean up any existing listeners first
         this.cleanupListeners();
-        
+
         // Check if user is properly authenticated before setting up listeners
         if (!window.currentUserContext || !this.currentUser || !this.currentUserRole) {
             console.warn('User not properly authenticated, skipping real-time listeners');
             return;
         }
-        
+
         // Listen for changes to service entries
         let query = firestore.collection('service_entries');
-        
+
         if (this.currentUserRole === 'navigator' && this.currentUser) {
             query = query.where('navigatorId', '==', this.currentUser.uid);
         }
-        
+
         const unsubscribe1 = query.onSnapshot(
             (snapshot) => {
                 console.log('Service entries updated');
@@ -1737,10 +1805,10 @@ class DashboardManager {
                 }
             }
         );
-        
+
         // Store unsubscribe function
         this.unsubscribeListeners.push(unsubscribe1);
-        
+
         // Listen for changes to services (admin only)
         if (this.currentUserRole === 'admin') {
             const unsubscribe2 = firestore.collection('services_master').onSnapshot(
@@ -1755,12 +1823,12 @@ class DashboardManager {
                     }
                 }
             );
-            
+
             // Store unsubscribe function
             this.unsubscribeListeners.push(unsubscribe2);
         }
     }
-    
+
     // Update active navigation item
     updateActiveNav(activeId) {
         // Remove active class from all navigation items
@@ -1768,7 +1836,7 @@ class DashboardManager {
         navItems.forEach(item => {
             item.classList.remove('active');
         });
-        
+
         // Add active class to the clicked item, or to dashboard if null
         if (activeId) {
             const activeItem = document.getElementById(activeId);
@@ -1783,7 +1851,7 @@ class DashboardManager {
             }
         }
     }
-    
+
     // Close modal with animation
     closeModalWithAnimation(modalId) {
         const modal = document.getElementById(modalId);
@@ -1794,7 +1862,7 @@ class DashboardManager {
             }, 300);
         }
     }
-    
+
     // Download Excel file with filtered data
     downloadExcel() {
         if (!window.excelExportManager) {
@@ -1802,14 +1870,14 @@ class DashboardManager {
             alert('Excel export functionality is not available. Please ensure xlsx.full.min.js is included in your HTML.');
             return;
         }
-        
+
         // Use filtered entries for export
         const entriesToExport = this.filteredEntries || this.entries;
-        
+
         // Export to Excel
         window.excelExportManager.exportToExcel(entriesToExport);
     }
-    
+
     // Add cleanup method (ADD THIS NEW FUNCTION after setupRealTimeListeners)
     cleanupListeners() {
         // Unsubscribe from all active listeners
@@ -1821,14 +1889,14 @@ class DashboardManager {
         this.unsubscribeListeners = [];
         console.log('Dashboard listeners cleaned up');
     }
-    
+
     // Load invoice generator screen
     loadInvoiceGeneratorScreen() {
         // Create invoice generator screen if it doesn't exist
         if (window.invoiceGeneratorManager) {
             window.invoiceGeneratorManager.createInvoiceGeneratorScreen();
         }
-        
+
         // Update active state in sidebar
         this.updateActiveNav('invoice-generator');
     }

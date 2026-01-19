@@ -13,7 +13,7 @@ class AuthService {
     initAuthListener() {
         firebaseAuth.onAuthStateChanged(async (user) => {
             console.log('Auth state changed:', user ? user.email : 'No user');
-            
+
             if (!user) {
                 // User is signed out
                 this.currentUser = null;
@@ -22,37 +22,37 @@ class AuthService {
                 this.showLogin();
                 return;
             }
-            
+
             // User is signed in
             this.currentUser = user;
             console.log('User signed in:', user.email);
-            
+
             try {
                 // Check if user document exists in users collection
                 const userRef = firestore.collection('users').doc(user.uid);
                 const userSnap = await userRef.get();
-                
+
                 console.log('User document exists:', userSnap.exists);
 
                 if (userSnap.exists) {
                     // User document exists, load dashboard
                     const userData = userSnap.data();
                     console.log('User data:', userData);
-                    
+
                     // Set global user context
                     window.currentUserContext = {
                         uid: user.uid,
                         role: userData.role,
                         name: userData.name
                     };
-                    
+
                     this.userRole = userData.role;
                     console.log('User role set to:', this.userRole);
                     this.showDashboard();
                 } else {
                     // User document doesn't exist
                     console.log('User document not found, checking allowed_users...');
-                    
+
                     // Check if they're in allowed_users
                     const allowedRef = firestore.collection("allowed_users")
                         .where("email", "==", user.email)
@@ -79,9 +79,9 @@ class AuthService {
                         active: true,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    
+
                     console.log('User document created');
-                    
+
                     // Remove from allowed_users
                     await firestore.collection('allowed_users').doc(allowedSnap.docs[0].id).delete();
                     console.log('Removed from allowed_users');
@@ -92,17 +92,17 @@ class AuthService {
                         role: allowed.role,
                         name: allowed.name
                     };
-                    
+
                     this.userRole = allowed.role;
                     console.log('User role set to:', this.userRole);
                     this.showDashboard();
                 }
-                
+
             } catch (error) {
                 console.error('Error in auth state listener:', error);
                 console.error('Error code:', error.code);
                 console.error('Error message:', error.message);
-                
+
                 // Show error to user
                 alert('Error loading user data: ' + error.message);
                 this.showLogin();
@@ -132,7 +132,7 @@ class AuthService {
         if (window.dashboardManager && window.dashboardManager.cleanupListeners) {
             window.dashboardManager.cleanupListeners();
         }
-        
+
         firebaseAuth.signOut()
             .then(() => {
                 console.log('User signed out');
@@ -146,7 +146,7 @@ class AuthService {
     showLogin() {
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('dashboard-screen').style.display = 'none';
-        
+
         // Show the login form and hide activation form
         const loginForm = document.getElementById('login-form');
         const activateForm = document.getElementById('activate-form');
@@ -157,24 +157,24 @@ class AuthService {
     // Show dashboard based on user role
     showDashboard() {
         console.log('showDashboard called, role:', this.userRole);
-        
+
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('dashboard-screen').style.display = 'block';
-        
+
         // Set user display name
         if (this.currentUser) {
             document.getElementById('user-display-name').textContent = this.currentUser.email;
         }
-        
+
         console.log('About to initialize services...');
-        
+
         // Initialize services after successful authentication
         if (window.initServicesAfterAuth) {
             window.initServicesAfterAuth();
         }
-        
+
         console.log('Loading dashboard for role:', this.userRole);
-        
+
         // Load dashboard based on role
         if (this.userRole === 'admin') {
             window.currentRole = 'admin';
@@ -188,7 +188,7 @@ class AuthService {
             console.error('Unknown role:', this.userRole);
             alert('Unknown user role. Contact admin.');
         }
-        
+
         console.log('Dashboard loaded successfully');
     }
 
@@ -207,8 +207,7 @@ class AuthService {
 window.authService = new AuthService();
 
 // Set up event listeners for auth UI
-document.addEventListener('DOMContentLoaded', function() {
-    // Login form
+document.addEventListener('DOMContentLoaded', function () {
     const loginBtn = document.getElementById('login-btn');
     const loginForm = document.getElementById('login-form');
     const activateForm = document.getElementById('activate-form');
@@ -219,92 +218,226 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginMessage = document.getElementById('login-message');
 
     // Login button
-    loginBtn.addEventListener('click', async function() {
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
+    if (loginBtn) {
+        loginBtn.addEventListener('click', async function () {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
 
-        if (!email || !password) {
-            loginMessage.textContent = 'Please fill in all fields';
-            loginMessage.className = 'message error';
-            loginMessage.style.display = 'block';
-            return;
-        }
-
-        try {
-            loginMessage.textContent = 'Logging in...';
-            loginMessage.className = 'message';
-            loginMessage.style.display = 'block';
-
-            await window.authService.login(email, password);
-            
-            loginMessage.textContent = 'Login successful!';
-            loginMessage.className = 'message success';
-            setTimeout(() => {
-                loginMessage.style.display = 'none';
-            }, 2000);
-        } catch (error) {
-            console.error('Login error:', error);
-            let errorMessage = 'Login failed. ';
-            
-            if (error.code === 'auth/user-not-found') {
-                errorMessage += 'User not found.';
-            } else if (error.code === 'auth/wrong-password') {
-                errorMessage += 'Incorrect password.';
-            } else if (error.code === 'auth/invalid-email') {
-                errorMessage += 'Invalid email format.';
-            } else {
-                errorMessage += error.message || 'Please try again.';
+            if (!email || !password) {
+                loginMessage.textContent = 'Please fill in all fields';
+                loginMessage.className = 'message error';
+                loginMessage.style.display = 'block';
+                return;
             }
-            
-            loginMessage.textContent = errorMessage;
-            loginMessage.className = 'message error';
-            loginMessage.style.display = 'block';
-        }
-    });
 
-    // Hide the activation button and form since we're removing activation logic
+            try {
+                loginMessage.textContent = 'Logging in...';
+                loginMessage.className = 'message';
+                loginMessage.style.display = 'block';
 
-    // Show/hide forms
+                loginBtn.disabled = true;
+
+                await window.authService.login(email, password);
+
+                loginMessage.textContent = 'Login successful!';
+                loginMessage.className = 'message success';
+                setTimeout(() => {
+                    loginMessage.style.display = 'none';
+                }, 2000);
+            } catch (error) {
+                console.error('Login error:', error);
+                let errorMessage = 'Login failed. ';
+
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage += 'User not found. Have you activated your account?';
+                } else if (error.code === 'auth/wrong-password') {
+                    errorMessage += 'Incorrect password.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage += 'Invalid email format.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage += 'Too many failed attempts. Please try again later.';
+                } else {
+                    errorMessage += error.message || 'Please try again.';
+                }
+
+                loginMessage.textContent = errorMessage;
+                loginMessage.className = 'message error';
+                loginMessage.style.display = 'block';
+            } finally {
+                loginBtn.disabled = false;
+            }
+        });
+    }
+
+    // ✅ ACTIVATION BUTTON - COMPLETE FIX
+    if (activateBtn) {
+        activateBtn.addEventListener('click', async function () {
+            const email = document.getElementById('activate-email').value.trim().toLowerCase();
+            const password = document.getElementById('activate-password').value;
+            const confirmPassword = document.getElementById('activate-confirm-password').value;
+
+            loginMessage.style.display = 'none';
+
+            if (!email || !password || !confirmPassword) {
+                loginMessage.textContent = 'Please fill in all fields';
+                loginMessage.className = 'message error';
+                loginMessage.style.display = 'block';
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                loginMessage.textContent = 'Passwords do not match';
+                loginMessage.className = 'message error';
+                loginMessage.style.display = 'block';
+                return;
+            }
+
+            if (password.length < 6) {
+                loginMessage.textContent = 'Password must be at least 6 characters';
+                loginMessage.className = 'message error';
+                loginMessage.style.display = 'block';
+                return;
+            }
+
+            try {
+                loginMessage.textContent = 'Activating account...';
+                loginMessage.className = 'message';
+                loginMessage.style.display = 'block';
+
+                activateBtn.disabled = true;
+                const originalText = activateBtn.innerHTML;
+                activateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Activating...';
+
+                // ✅ FIX: Check if email exists in allowed_users
+                const allowedRef = firestore.collection("allowed_users")
+                    .where("email", "==", email)
+                    .limit(1);
+                const allowedSnap = await allowedRef.get();
+
+                if (allowedSnap.empty) {
+                    throw new Error("Email not found in allowed users. Please contact your administrator to add your email first.");
+                }
+
+                const allowedData = allowedSnap.docs[0].data();
+                const allowedDocId = allowedSnap.docs[0].id;
+
+                // ✅ NOTE: We don't check if user exists in 'users' collection because:
+                // 1. Firebase Auth will automatically reject duplicate emails
+                // 2. Querying by email requires special permissions we don't want to grant
+                // 3. The error message from Firebase Auth is clear enough
+
+                // ✅ FIX: Create Firebase Auth account
+                const cred = await firebaseAuth.createUserWithEmailAndPassword(email, password);
+                const uid = cred.user.uid;
+
+                // ✅ FIX: Create user document in Firestore
+                await firestore.collection('users').doc(uid).set({
+                    uid: uid,
+                    email: email,
+                    name: allowedData.name,
+                    role: allowedData.role || 'navigator',
+                    status: "active",
+                    active: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // ✅ NOTE: We don't delete from allowed_users because:
+                // 1. User doesn't have permission (only admin can delete)
+                // 2. It serves as a permanent record of who was invited
+                // 3. The employee list already deduplicates and shows active users first
+
+                loginMessage.textContent = '✅ Account activated successfully! Redirecting to dashboard...';
+                loginMessage.className = 'message success';
+
+                // Auth state listener will handle automatic login
+
+            } catch (error) {
+                console.error('Activation error:', error);
+                let errorMessage = 'Activation failed. ';
+
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage += 'This email is already registered. Please login instead.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage += 'Invalid email format.';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage += 'Password is too weak. Please use at least 6 characters.';
+                } else if (error.code === 'auth/operation-not-allowed') {
+                    errorMessage += 'Email/password accounts are not enabled. Contact admin.';
+                } else {
+                    errorMessage += error.message || 'Please try again.';
+                }
+
+                loginMessage.textContent = errorMessage;
+                loginMessage.className = 'message error';
+                loginMessage.style.display = 'block';
+
+                activateBtn.disabled = false;
+                activateBtn.innerHTML = '<i class="fas fa-user-check"></i> Activate Account';
+            }
+        });
+    }
+
+    // Show activation form
     if (showActivateForm) {
-        showActivateForm.addEventListener('click', function(e) {
+        showActivateForm.addEventListener('click', function (e) {
             e.preventDefault();
             loginForm.style.display = 'none';
             activateForm.style.display = 'block';
             loginMessage.style.display = 'none';
+
+            document.getElementById('activate-email').value = '';
+            document.getElementById('activate-password').value = '';
+            document.getElementById('activate-confirm-password').value = '';
         });
     }
 
+    // Show login form
     if (showLoginForm) {
-        showLoginForm.addEventListener('click', function(e) {
+        showLoginForm.addEventListener('click', function (e) {
             e.preventDefault();
             activateForm.style.display = 'none';
             loginForm.style.display = 'block';
             loginMessage.style.display = 'none';
+
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
         });
     }
 
     // Logout button
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', function() {
+        logoutBtn.addEventListener('click', function () {
             window.authService.logout();
         });
     }
 
-    // Handle form submission with Enter key
+    // Handle Enter key - Login form
     const loginInputs = document.querySelectorAll('#login-form input');
     loginInputs.forEach(input => {
-        input.addEventListener('keypress', function(e) {
+        input.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
+                e.preventDefault();
                 loginBtn.click();
             }
         });
     });
-    
+
+    // Handle Enter key - Activate form
+    const activateInputs = document.querySelectorAll('#activate-form input');
+    activateInputs.forEach(input => {
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                activateBtn.click();
+            }
+        });
+    });
+
     // Password toggle functionality
-    window.togglePassword = function() {
+    window.togglePassword = function () {
         const passwordInput = document.getElementById('login-password');
         const toggleText = document.getElementById('toggle-text');
-        
+
         if (passwordInput.type === 'password') {
             passwordInput.type = 'text';
             toggleText.textContent = 'HIDE';
