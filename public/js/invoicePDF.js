@@ -1,8 +1,7 @@
 /**
- * AssistHealth Invoice PDF Generator - Fixed Logo & Enhanced Design
- * Proper logo loading with base64 conversion
- * Logo path: images/AH.png
- * Professional PDF output with guaranteed logo rendering
+ * AssistHealth Invoice PDF Generator - High-Quality Branding
+ * Improved logo rendering using AH1.png
+ * Professional aspect ratio and loading logic
  */
 
 class InvoicePDFManager {
@@ -34,11 +33,11 @@ class InvoicePDFManager {
         };
 
         img.onerror = () => {
-          console.warn('Logo not found at images/AH.png');
+          console.warn('Logo not found at images/AH1.png');
           resolve(null);
         };
 
-        img.src = 'images/AH.png';
+        img.src = 'images/AH1.png';
       });
     } catch (error) {
       console.warn('Logo loading failed:', error);
@@ -154,10 +153,11 @@ class InvoicePDFManager {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
-    // Add logo on the left if available (smaller size)
+    // Add logo on the left - AH1.png is square-ish, use 15x15 size
     if (this.logoBase64) {
       try {
-        pdf.addImage(this.logoBase64, 'PNG', 10, 5, 20, 8);
+        // AH1.png looks better when larger and square
+        pdf.addImage(this.logoBase64, 'PNG', 10, 4, 15, 15);
       } catch (e) {
         console.warn('Could not add logo to PDF:', e);
       }
