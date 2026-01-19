@@ -7,12 +7,42 @@
 
 class InvoicePDFManager {
 
+  constructor() {
+    this.logoBase64 = null;
+  }
+
+  // Preload and convert logo to base64
+  async loadLogo() {
+    if (this.logoBase64) return this.logoBase64;
+    
+    try {
+      const response = await fetch('images/AH.png');
+      const blob = await response.blob();
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          this.logoBase64 = reader.result;
+          resolve(this.logoBase64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.warn('Logo loading failed:', error);
+      return null;
+    }
+  }
+
   async downloadInvoice(invoiceId) {
     try {
       if (!invoiceId) {
         alert('Invoice ID required');
         return;
       }
+
+      // Preload logo
+      await this.loadLogo();
 
       // Fetch invoice
       const invoice = await this.getInvoiceData(invoiceId);
@@ -103,17 +133,13 @@ class InvoicePDFManager {
   addHeader(pdf, invoice) {
     const pageWidth = pdf.internal.pageSize.getWidth();
     
-    // Add logo with better error handling
-    try {
-      const logoPath = 'images/AH.png';
-      pdf.addImage(logoPath, 'PNG', 10, 4, 35, 12);
-    } catch (e) {
-      console.warn('Logo not loaded:', e);
-      // Fallback: just show company name prominently if logo fails
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(47, 158, 117);
-      pdf.text('AH', 12, 12);
+    // Add logo - use base64 if available
+    if (this.logoBase64) {
+      try {
+        pdf.addImage(this.logoBase64, 'PNG', 10, 4, 35, 12);
+      } catch (e) {
+        console.warn('Logo rendering failed:', e);
+      }
     }
     
     // Company name
@@ -228,9 +254,8 @@ ${this.getStyles()}
   <!-- LOGO AND COMPANY INFO -->
   <div class="header-section no-break">
     <div style="text-align: center; margin-bottom: 18px;">
-      <img src="images/AH.png" alt="AssistHealth Logo" 
-           style="height: 45px; margin-bottom: 6px; display: block; margin-left: auto; margin-right: auto;"
-           crossorigin="anonymous">
+      ${this.logoBase64 ? `<img src="${this.logoBase64}" alt="AssistHealth Logo" 
+           style="height: 45px; margin-bottom: 6px; display: block; margin-left: auto; margin-right: auto;">` : ''}
       <div class="company-name">AssistHealth</div>
       <div class="tagline">Health. Assured. Always.</div>
       <hr style="margin: 10px 0; border: none; border-top: 1.5px solid #2f9e75; width: 100%;">
