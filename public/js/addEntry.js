@@ -713,7 +713,6 @@ class AddEntryManager {
         // Validate numeric fields
         const discountGiven = document.getElementById('discount-given').value;
         const referralAmount = document.getElementById('referral-amount').value;
-        const amountPaid = document.getElementById('amount-paid').value;
 
         if (isNaN(parseFloat(totalBillAmount))) {
             alert('Total Bill Amount must be a valid number');
