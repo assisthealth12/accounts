@@ -985,6 +985,8 @@ class DashboardManager {
             const hcpFilter = document.getElementById('filter-hcp').value;
             const collectedBy = document.getElementById('filter-collected-by').value;
             const referralStatus = document.getElementById('filter-referral-status').value;
+            const paymentByUsFilter = document.getElementById('filter-payment-by-us').value;
+            const searchTerm = document.getElementById('universal-search').value.toLowerCase().trim();
             const navigatorFilter = this.currentUserRole === 'admin' ?
                 document.getElementById('filter-navigator').value : null;
 
@@ -1027,9 +1029,34 @@ class DashboardManager {
                     return false;
                 }
 
+                // Payment By Us filter
+                if (paymentByUsFilter) {
+                    const hasPayment = (entry.paymentByUs && entry.paymentByUs.enabled) ? 'Yes' : 'No';
+                    if (hasPayment !== paymentByUsFilter) {
+                        return false;
+                    }
+                }
+
                 // Navigator filter (admin only)
                 if (this.currentUserRole === 'admin' && navigatorFilter && entry.navigatorId !== navigatorFilter) {
                     return false;
+                }
+
+                // Universal search filter
+                if (searchTerm) {
+                    const memberName = (entry.memberName || '').toLowerCase();
+                    const ahid = (entry.ahid || '').toLowerCase();
+                    const hcpName = (entry.hcpName || '').toLowerCase();
+                    const serviceName = this.getServiceNameById(entry.serviceTypeId).toLowerCase();
+                    const transactionId = (entry.transactionId || '').toLowerCase();
+
+                    if (!memberName.includes(searchTerm) &&
+                        !ahid.includes(searchTerm) &&
+                        !hcpName.includes(searchTerm) &&
+                        !serviceName.includes(searchTerm) &&
+                        !transactionId.includes(searchTerm)) {
+                        return false;
+                    }
                 }
 
                 return true;
@@ -1073,6 +1100,16 @@ class DashboardManager {
         }
     }
 
+    // Get service name by ID
+    getServiceNameById(serviceId) {
+        if (!this.services || this.services.length === 0) {
+            return '';
+        }
+
+        const service = this.services.find(s => s.id === serviceId);
+        return service ? service.name : '';
+    }
+
     // Reset all filters
     resetFilters() {
         // Add visual feedback
@@ -1101,6 +1138,12 @@ class DashboardManager {
 
             // Reset referral status
             document.getElementById('filter-referral-status').value = '';
+
+            // Reset Payment By Us filter
+            document.getElementById('filter-payment-by-us').value = '';
+
+            // Reset Universal Search
+            document.getElementById('universal-search').value = '';
 
             // Reset navigator filter if it exists
             const navigatorFilter = document.getElementById('filter-navigator');

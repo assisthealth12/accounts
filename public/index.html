@@ -267,6 +267,14 @@
                         <!-- Row 2: Additional Filters -->
                         <div class="filter-row">
                             <div class="filter-group">
+                                <label for="universal-search">
+                                    <i class="fas fa-search"></i> Universal Search
+                                </label>
+                                <input type="text" id="universal-search"
+                                    placeholder="Search by Name, AHID, HCP, Service...">
+                            </div>
+
+                            <div class="filter-group">
                                 <label for="filter-collected-by">Collected By</label>
                                 <select id="filter-collected-by">
                                     <option value="">All</option>
@@ -282,6 +290,15 @@
                                     <option value="">All</option>
                                     <option value="Received">Received</option>
                                     <option value="Pending">Pending</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filter-payment-by-us">Payment By Us</label>
+                                <select id="filter-payment-by-us">
+                                    <option value="">All</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
                                 </select>
                             </div>
 
