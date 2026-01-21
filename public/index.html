@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,112 +17,116 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./images/favicon-16x16.png">
     <link rel="icon" type="image/x-icon" href="./images/favicon.ico">
     <link rel="manifest" href="./images/site.webmanifest">
-    
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="./css/main.css">
 </head>
+
 <body>
     <div id="app">
         <!-- Login Screen -->
-    <div id="login-screen" class="screen">
-        <!-- Animated Background Shapes -->
-        <div class="bg-shape shape-1"></div>
-        <div class="bg-shape shape-2"></div>
-        <div class="bg-shape shape-3"></div>
-        
-        <div class="modern-login-container">
-            <!-- Left Side - Login Form -->
-            <div class="login-left-side">
-                <div class="login-form-content">
-                    <!-- Logo and Branding -->
-                    <div class="brand-section">
-                        <img src="./images/AH1.png" alt="AssistHealth Logo" class="login-logo">
-                        <div class="brand-text-info">
-                            <h1 class="company-name">AssistHealth</h1>
-                            <p class="company-tagline">Health. Assured. Always.</p>
+        <div id="login-screen" class="screen">
+            <!-- Animated Background Shapes -->
+            <div class="bg-shape shape-1"></div>
+            <div class="bg-shape shape-2"></div>
+            <div class="bg-shape shape-3"></div>
+
+            <div class="modern-login-container">
+                <!-- Left Side - Login Form -->
+                <div class="login-left-side">
+                    <div class="login-form-content">
+                        <!-- Logo and Branding -->
+                        <div class="brand-section">
+                            <img src="./images/AH1.png" alt="AssistHealth Logo" class="login-logo">
+                            <div class="brand-text-info">
+                                <h1 class="company-name">AssistHealth</h1>
+                                <p class="company-tagline">Health. Assured. Always.</p>
+                            </div>
                         </div>
+
+                        <h2 class="welcome-heading">Welcome Back</h2>
+                        <p class="welcome-description">Login to access your dashboard and manage your healthcare
+                            accounts</p>
+                        <!-- Login Form -->
+                        <div class="form-container">
+                            <div id="login-form">
+                                <div class="input-group">
+                                    <div class="input-icon-wrapper">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <input type="email" id="login-email" placeholder="User Name" required>
+                                </div>
+
+                                <div class="input-group">
+                                    <div class="input-icon-wrapper">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
+                                    <input type="password" id="login-password" placeholder="Password" required>
+                                    <button type="button" class="password-toggle" onclick="togglePassword()">
+                                        <span id="toggle-text">SHOW</span>
+                                    </button>
+                                </div>
+
+                                <button id="login-btn" class="btn-primary login-submit">Login</button>
+
+                                <p class="switch-form">
+                                    <a href="#" id="show-activate-form">Forgot Password?</a>
+                                </p>
+                            </div>
+
+                            <div id="activate-form" style="display: none;">
+                                <h3 style="color: #2c3e50; margin-bottom: 1.5rem;">Activate Account</h3>
+                                <div class="input-group">
+                                    <div class="input-icon-wrapper">
+                                        <i class="fas fa-envelope"></i>
+                                    </div>
+                                    <input type="email" id="activate-email" placeholder="Email" required>
+                                </div>
+                                <div class="input-group">
+                                    <div class="input-icon-wrapper">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
+                                    <input type="password" id="activate-password" placeholder="Password" required>
+                                </div>
+                                <div class="input-group">
+                                    <div class="input-icon-wrapper">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
+                                    <input type="password" id="activate-confirm-password" placeholder="Confirm Password"
+                                        required>
+                                </div>
+                                <button id="activate-btn" class="btn-primary login-submit">Activate Account</button>
+                                <p class="switch-form">
+                                    <a href="#" id="show-login-form">Back to Login</a>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div id="login-message" class="message"></div>
                     </div>
-                    
-                    <h2 class="welcome-heading">Welcome Back</h2>
-                    <p class="welcome-description">Login to access your dashboard and manage your healthcare accounts</p>  
-                    <!-- Login Form -->
-                    <div class="form-container">
-                        <div id="login-form">
-                            <div class="input-group">
-                                <div class="input-icon-wrapper">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <input type="email" id="login-email" placeholder="User Name" required>
-                            </div>
-                            
-                            <div class="input-group">
-                                <div class="input-icon-wrapper">
-                                    <i class="fas fa-lock"></i>
-                                </div>
-                                <input type="password" id="login-password" placeholder="Password" required>
-                                <button type="button" class="password-toggle" onclick="togglePassword()">
-                                    <span id="toggle-text">SHOW</span>
-                                </button>
-                            </div>
-                            
-                            <button id="login-btn" class="btn-primary login-submit">Login</button>
-                            
-                            <p class="switch-form">
-                                <a href="#" id="show-activate-form">Forgot Password?</a>
-                            </p>
-                        </div>
-                        
-                        <div id="activate-form" style="display: none;">
-                            <h3 style="color: #2c3e50; margin-bottom: 1.5rem;">Activate Account</h3>
-                            <div class="input-group">
-                                <div class="input-icon-wrapper">
-                                    <i class="fas fa-envelope"></i>
-                                </div>
-                                <input type="email" id="activate-email" placeholder="Email" required>
-                            </div>
-                            <div class="input-group">
-                                <div class="input-icon-wrapper">
-                                    <i class="fas fa-lock"></i>
-                                </div>
-                                <input type="password" id="activate-password" placeholder="Password" required>
-                            </div>
-                            <div class="input-group">
-                                <div class="input-icon-wrapper">
-                                    <i class="fas fa-lock"></i>
-                                </div>
-                                <input type="password" id="activate-confirm-password" placeholder="Confirm Password" required>
-                            </div>
-                            <button id="activate-btn" class="btn-primary login-submit">Activate Account</button>
-                            <p class="switch-form">
-                                <a href="#" id="show-login-form">Back to Login</a>
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div id="login-message" class="message"></div>
                 </div>
-            </div>
-            
-            <!-- Right Side - Registration/Features -->
-            <div class="login-right-side">
-                <div class="right-side-content">
-                    <div class="feature-icon-circle">
-                        <i class="fas fa-user-plus"></i>
+
+                <!-- Right Side - Registration/Features -->
+                <div class="login-right-side">
+                    <div class="right-side-content">
+                        <div class="feature-icon-circle">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h2 class="right-side-title">New Here?</h2>
+                        <p class="right-side-description">
+                            First time user? Set your password and register with the company provided mail id to get
+                            started
+                        </p>
+                        <button class="btn-signup" onclick="document.getElementById('show-activate-form').click()">
+                            Register Here
+                        </button>
                     </div>
-                    <h2 class="right-side-title">New Here?</h2>
-                    <p class="right-side-description">
-                        First time user? Set your password and register with the company provided mail id to get started
-                    </p>
-                    <button class="btn-signup" onclick="document.getElementById('show-activate-form').click()">
-                        Register Here
-                    </button>
                 </div>
             </div>
         </div>
-    </div>
 
         <!-- Dashboard Screen -->
         <div id="dashboard-screen" class="screen" style="display: none;">
@@ -156,7 +161,8 @@
                     <!-- Dashboard Header -->
                     <div class="dashboard-header">
                         <h1 id="dashboard-title">Dashboard</h1>
-                        <button id="add-entry-btn" class="btn-primary"><i class="fas fa-plus-circle"></i> Add Entry</button>
+                        <button id="add-entry-btn" class="btn-primary"><i class="fas fa-plus-circle"></i> Add
+                            Entry</button>
                     </div>
 
                     <!-- Summary Cards -->
@@ -230,7 +236,7 @@
                                     <button type="button" class="btn-small" data-preset="30days">30 Days</button>
                                 </div>
                             </div>
-                            
+
                             <div class="filter-group">
                                 <label for="filter-service-type">Service Type</label>
                                 <select id="filter-service-type">
@@ -238,7 +244,7 @@
                                     <!-- Options populated by JavaScript -->
                                 </select>
                             </div>
-                            
+
                             <div class="filter-group">
                                 <label for="filter-package-type">Package Type</label>
                                 <select id="filter-package-type">
@@ -248,7 +254,7 @@
                                     <option value="Special">Special</option>
                                 </select>
                             </div>
-                            
+
                             <div class="filter-group">
                                 <label for="filter-hcp">Healthcare Provider</label>
                                 <select id="filter-hcp">
@@ -257,7 +263,7 @@
                                 </select>
                             </div>
                         </div>
-                        
+
                         <!-- Row 2: Additional Filters -->
                         <div class="filter-row">
                             <div class="filter-group">
@@ -265,10 +271,11 @@
                                 <select id="filter-collected-by">
                                     <option value="">All</option>
                                     <option value="Collected by AssistHealth">Collected by AssistHealth</option>
-                                    <option value="Collected by Healthcare Provider">Collected by Healthcare Provider</option>
+                                    <option value="Collected by Healthcare Provider">Collected by Healthcare Provider
+                                    </option>
                                 </select>
                             </div>
-                            
+
                             <div class="filter-group">
                                 <label for="filter-referral-status">Referral Status</label>
                                 <select id="filter-referral-status">
@@ -277,7 +284,7 @@
                                     <option value="Pending">Pending</option>
                                 </select>
                             </div>
-                            
+
                             <!-- Navigator filter (admin only) -->
                             <div id="navigator-filter" class="filter-group" style="display: none;">
                                 <label for="filter-navigator">Navigator</label>
@@ -287,7 +294,7 @@
                                 </select>
                             </div>
                         </div>
-                        
+
                         <!-- Action Buttons Row -->
                         <div class="filter-actions">
                             <button id="apply-filters-btn" class="btn-primary">
@@ -365,7 +372,7 @@
                     <div class="modal-body">
                         <form id="entry-form">
                             <input type="hidden" id="entry-id">
-                            
+
                             <!-- Basic Information Section -->
                             <div class="form-section">
                                 <h4><i class="fas fa-info-circle"></i> Basic Information</h4>
@@ -379,7 +386,7 @@
                                         <input type="text" id="member-name" placeholder="Enter member name" required>
                                     </div>
                                 </div>
-                                
+
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="ahid">AHID</label>
@@ -393,7 +400,7 @@
                                         </select>
                                     </div>
                                 </div>
-                                
+
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="package-type" class="required">Package Type</label>
@@ -413,7 +420,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Collection Details Section -->
                             <div class="form-section">
                                 <h4><i class="fas fa-money-bill-wave"></i> Collection Details</h4>
@@ -423,16 +430,18 @@
                                         <select id="collected-by" required>
                                             <option value="">Select Collection Method</option>
                                             <option value="Collected by AssistHealth">Collected by AssistHealth</option>
-                                            <option value="Collected by Healthcare Provider">Collected by Healthcare Provider</option>
+                                            <option value="Collected by Healthcare Provider">Collected by Healthcare
+                                                Provider</option>
                                         </select>
                                     </div>
                                 </div>
-                                
+
                                 <div id="collection-details" style="display: none;">
                                     <div class="conditional-field">
                                         <div class="form-row">
                                             <div class="form-group">
-                                                <label for="mode-of-transaction" class="required">Mode of Transaction</label>
+                                                <label for="mode-of-transaction" class="required">Mode of
+                                                    Transaction</label>
                                                 <select id="mode-of-transaction">
                                                     <option value="">Select Transaction Mode</option>
                                                     <option value="UPI">UPI</option>
@@ -442,13 +451,14 @@
                                             </div>
                                             <div class="form-group" id="transaction-id-group" style="display: none;">
                                                 <label for="transaction-id" class="required">Transaction ID</label>
-                                                <input type="text" id="transaction-id" placeholder="Enter transaction ID">
+                                                <input type="text" id="transaction-id"
+                                                    placeholder="Enter transaction ID">
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Financial Details Section -->
                             <div class="form-section">
                                 <h4><i class="fas fa-rupee-sign"></i> Financial Details</h4>
@@ -463,7 +473,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Referral Details Section -->
                             <div class="form-section">
                                 <h4><i class="fas fa-hand-holding-usd"></i> Referral Details</h4>
@@ -480,12 +490,13 @@
                                         </select>
                                     </div>
                                 </div>
-                                
+
                                 <div id="referral-payment-details" style="display: none;">
                                     <div class="conditional-field">
                                         <div class="form-row">
                                             <div class="form-group">
-                                                <label for="referral-payment-mode" class="required">Referral Payment Mode</label>
+                                                <label for="referral-payment-mode" class="required">Referral Payment
+                                                    Mode</label>
                                                 <select id="referral-payment-mode">
                                                     <option value="">Select Payment Mode</option>
                                                     <option value="Cash">Cash</option>
@@ -494,15 +505,18 @@
                                                     <option value="Wallet">Wallet</option>
                                                 </select>
                                             </div>
-                                            <div class="form-group" id="referral-transaction-id-group" style="display: none;">
-                                                <label for="referral-transaction-id" class="required">Referral Transaction ID</label>
-                                                <input type="text" id="referral-transaction-id" placeholder="Enter referral transaction ID">
+                                            <div class="form-group" id="referral-transaction-id-group"
+                                                style="display: none;">
+                                                <label for="referral-transaction-id" class="required">Referral
+                                                    Transaction ID</label>
+                                                <input type="text" id="referral-transaction-id"
+                                                    placeholder="Enter referral transaction ID">
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Payment Details Section -->
                             <div class="form-section">
                                 <h4><i class="fas fa-credit-card"></i> Payment Details</h4>
@@ -515,43 +529,68 @@
                                         </select>
                                     </div>
                                 </div>
-                                
+
                                 <div id="payment-details-section" style="display: none;">
                                     <div class="conditional-field">
+                                        <!-- Payment Header Fields -->
                                         <div class="form-row">
                                             <div class="form-group">
-                                                <label for="mode-of-transfer">Mode of Transfer</label>
-                                                <select id="mode-of-transfer">
-                                                    <option value="">Select Mode</option>
-                                                    <option value="Cash">Cash</option>
-                                                    <option value="Bank Transfer">Bank Transfer</option>
-                                                    <option value="Cheque">Cheque</option>
-                                                    <option value="Online">Online</option>
-                                                </select>
+                                                <label for="whom-to-pay" class="required">Whom to Pay</label>
+                                                <input type="text" id="whom-to-pay" placeholder="Provider/Vendor name">
                                             </div>
                                             <div class="form-group">
-                                                <label for="paid-to">Paid To</label>
-                                                <input type="text" id="paid-to" placeholder="Enter recipient name">
+                                                <label for="total-amount-to-pay" class="required">Total Amount to
+                                                    Pay</label>
+                                                <input type="number" id="total-amount-to-pay" min="0"
+                                                    placeholder="Enter total amount">
                                             </div>
                                         </div>
-                                        
+
+                                        <!-- Auto-calculated Display Fields (Read-only) -->
                                         <div class="form-row">
                                             <div class="form-group">
-                                                <label for="amount-paid">Amount Paid</label>
-                                                <input type="number" id="amount-paid" placeholder="Enter amount paid">
+                                                <label>Paid Amount</label>
+                                                <input type="text" id="paid-amount-display" value="₹0" readonly
+                                                    class="readonly-field">
                                             </div>
                                             <div class="form-group">
-                                                <label for="payment-status">Payment Status</label>
-                                                <select id="payment-status">
-                                                    <option value="Pending">Pending</option>
-                                                    <option value="Completed">Completed</option>
-                                                </select>
+                                                <label>Balance Amount</label>
+                                                <input type="text" id="balance-amount-display" value="₹0" readonly
+                                                    class="readonly-field">
                                             </div>
+                                            <div class="form-group">
+                                                <label>Payment Status</label>
+                                                <input type="text" id="payment-status-display" value="Not Started"
+                                                    readonly class="readonly-field">
+                                            </div>
+                                        </div>
+
+                                        <!-- Payment History Table -->
+                                        <div class="payment-history">
+                                            <h5>Payment History</h5>
+                                            <table id="payments-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>Mode</th>
+                                                        <th>Amount</th>
+                                                        <th>Transaction ID</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="payments-table-body">
+                                                    <!-- Populated dynamically -->
+                                                </tbody>
+                                            </table>
+                                            <button type="button" id="add-payment-btn" class="btn-secondary"
+                                                style="margin-top: 10px;">
+                                                <i class="fas fa-plus"></i> Add Payment
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="form-actions">
                                 <button type="submit" class="btn-primary">Save Entry</button>
                                 <button type="button" id="cancel-modal" class="btn-secondary">Cancel</button>
@@ -560,10 +599,59 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Add Payment Modal -->
+    <div id="add-payment-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Payment</h3>
+                <span class="close" id="close-payment-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="add-payment-form">
+                    <div class="form-group">
+                        <label for="payment-date" class="required">Payment Date</label>
+                        <input type="date" id="payment-date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="payment-mode" class="required">Mode of Transaction</label>
+                        <select id="payment-mode" required>
+                            <option value="">Select Mode</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Card">Card</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="payment-amount" class="required">Amount Paid</label>
+                        <input type="number" id="payment-amount" min="1" required placeholder="Enter amount">
+                        <small id="balance-hint" class="form-hint"></small>
+                    </div>
+
+                    <!-- Transaction ID (conditionally shown) -->
+                    <div class="form-group" id="payment-transaction-id-group" style="display: none;">
+                        <label for="payment-transaction-id">Transaction ID</label>
+                        <input type="text" id="payment-transaction-id" placeholder="Enter transaction ID">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Add Payment</button>
+                        <button type="button" id="cancel-payment-modal" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     </div>
     </div>
 
-        <!-- Manage Healthcare Providers Modal -->
+    <!-- Manage Healthcare Providers Modal -->
     <div id="manage-providers-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -624,7 +712,7 @@
     <script src="./js/invoicePDF.js"></script>
     <script>
         // Global error handler to catch third-party script errors like giveFreely
-        window.addEventListener('error', function(e) {
+        window.addEventListener('error', function (e) {
             // Check if the error is from a third-party script related to giveFreely
             if (e.filename && (e.filename.includes('giveFreely') || e.filename.includes('GiveFreely'))) {
                 console.warn('Suppressed third-party script error:', e.error);
@@ -635,4 +723,5 @@
         });
     </script>
 </body>
+
 </html>
