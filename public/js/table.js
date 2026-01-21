@@ -22,16 +22,16 @@ class TableManager {
     renderTable() {
         const tableBody = document.getElementById('entries-table-body');
         if (!tableBody) return;
-        
+
         // Clear existing rows
         tableBody.innerHTML = '';
-        
+
         // Add rows for each entry
         this.entries.forEach(entry => {
             const row = this.createTableRow(entry);
             tableBody.appendChild(row);
         });
-        
+
         // Add event listeners for edit buttons
         this.addEventListeners();
     }
@@ -40,37 +40,53 @@ class TableManager {
     createTableRow(entry) {
         const row = document.createElement('tr');
         row.setAttribute('data-entry-id', entry.id);
-        
+
         // Format values for display - handle 0 as valid number
-        const totalBillAmount = (entry.totalBillAmount !== null && entry.totalBillAmount !== undefined) 
+        const totalBillAmount = (entry.totalBillAmount !== null && entry.totalBillAmount !== undefined)
             ? `₹${entry.totalBillAmount.toLocaleString()}` : '';
-        const discountGiven = (entry.discountGiven !== null && entry.discountGiven !== undefined) 
+        const discountGiven = (entry.discountGiven !== null && entry.discountGiven !== undefined)
             ? `₹${entry.discountGiven.toLocaleString()}` : '';
-        const referralAmount = (entry.referralAmount !== null && entry.referralAmount !== undefined) 
+        const referralAmount = (entry.referralAmount !== null && entry.referralAmount !== undefined)
             ? `₹${entry.referralAmount.toLocaleString()}` : '';
-        const amountPaid = (entry.paymentDetails && entry.paymentDetails.amountPaid !== null && entry.paymentDetails.amountPaid !== undefined) 
+        const amountPaid = (entry.paymentDetails && entry.paymentDetails.amountPaid !== null && entry.paymentDetails.amountPaid !== undefined)
             ? `₹${entry.paymentDetails.amountPaid.toLocaleString()}` : '';
-        
+
         // Format date
         const dateStr = entry.date ? new Date(entry.date).toLocaleDateString() : '';
-        
+
         // Get service name
         const serviceName = this.getServiceNameById(entry.serviceTypeId);
-        
+
         // Format collection details
         const collectionDetails = entry.collectionDetails || {};
         const collectedBy = collectionDetails.collectedBy || '';
         const modeOfTransaction = collectionDetails.modeOfTransaction || '';
         const transactionId = collectionDetails.transactionId || '';
-        
+
         // Format referral payment details
         const referralPaymentDetails = entry.referralPaymentDetails || {};
         const referralPaymentMode = referralPaymentDetails.paymentMode || '';
         const referralTransactionId = referralPaymentDetails.transactionId || '';
-        
-        // Format payment details
-        const paymentDetails = entry.paymentDetails || {};
-        
+
+        // Format payment by us details
+        let paymentByUsText = 'No';
+        let whomToPay = '-';
+        let totalPaymentAmount = '-';
+        let paidPaymentAmount = '-';
+        let balancePaymentAmount = '-';
+        let paymentStatusText = '-';
+        let paymentsCount = '0';
+
+        if (entry.paymentByUs && entry.paymentByUs.enabled) {
+            paymentByUsText = 'Yes';
+            whomToPay = entry.paymentByUs.whomToPay || '-';
+            totalPaymentAmount = `₹${(entry.paymentByUs.totalAmount || 0).toLocaleString()}`;
+            paidPaymentAmount = `₹${(entry.paymentByUs.paidAmount || 0).toLocaleString()}`;
+            balancePaymentAmount = `₹${(entry.paymentByUs.balanceAmount || 0).toLocaleString()}`;
+            paymentStatusText = entry.paymentByUs.paymentStatus || '-';
+            paymentsCount = (entry.paymentByUs.payments || []).length;
+        }
+
         row.innerHTML = `
             <td>${entry.slNo || ''}</td>
             <td>${dateStr}</td>
@@ -88,17 +104,19 @@ class TableManager {
             <td>${entry.referralStatus || ''}</td>
             <td>${referralPaymentMode}</td>
             <td>${referralTransactionId}</td>
-            <td>${entry.paymentByUs || ''}</td>
-            <td>${paymentDetails.mode || ''}</td>
-            <td>${paymentDetails.paidTo || ''}</td>
-            <td>${amountPaid}</td>
-            <td>${paymentDetails.paymentStatus || ''}</td>
+            <td>${paymentByUsText}</td>
+            <td>${whomToPay}</td>
+            <td>${totalPaymentAmount}</td>
+            <td>${paidPaymentAmount}</td>
+            <td>${balancePaymentAmount}</td>
+            <td><span class="status status-${paymentStatusText.replace(/ /g, '-').toLowerCase()}">${paymentStatusText}</span></td>
+            <td>${paymentsCount}</td>
             <td class="actions-cell">
                 <button class="btn-action btn-edit" data-entry-id="${entry.id}">Edit</button>
                 <button class="btn-action btn-delete" data-entry-id="${entry.id}">Delete</button>
             </td>
         `;
-        
+
         return row;
     }
 
@@ -107,7 +125,7 @@ class TableManager {
         if (!window.userManagement || !window.userManagement.services) {
             return serviceId || 'Unknown';
         }
-        
+
         const service = window.userManagement.services.find(s => s.id === serviceId);
         return service ? service.name : serviceId || 'Unknown';
     }
@@ -121,7 +139,7 @@ class TableManager {
                 this.editEntry(entryId);
             });
         });
-        
+
         // Add event listeners for delete buttons are handled in addEntry.js
     }
 
@@ -144,12 +162,12 @@ class TableManager {
             this.currentSort.column = column;
             this.currentSort.direction = 'asc';
         }
-        
+
         // Sort the entries
         this.entries.sort((a, b) => {
             let valA = a[column];
             let valB = b[column];
-            
+
             // Handle special cases for sorting
             if (column === 'date') {
                 valA = new Date(valA);
@@ -185,11 +203,11 @@ class TableManager {
                 valA = valA || '';
                 valB = valB || '';
             }
-            
+
             // Handle null/undefined values
             if (valA === null || valA === undefined) valA = '';
             if (valB === null || valB === undefined) valB = '';
-            
+
             let comparison = 0;
             if (typeof valA === 'string' && typeof valB === 'string') {
                 comparison = valA.toLowerCase().localeCompare(valB.toLowerCase());
@@ -200,10 +218,10 @@ class TableManager {
                     comparison = 1;
                 }
             }
-            
+
             return this.currentSort.direction === 'asc' ? comparison : -comparison;
         });
-        
+
         // Re-render the table
         this.renderTable();
     }
@@ -214,7 +232,7 @@ class TableManager {
             // Apply filters here if needed
             return true;
         });
-        
+
         this.renderTable();
     }
 }
@@ -223,21 +241,21 @@ class TableManager {
 window.tableManager = new TableManager();
 
 // Add sorting functionality to table headers
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const tableHeaders = document.querySelectorAll('#entries-table th');
-    
+
     tableHeaders.forEach((header, index) => {
         // Map column index to field name
         const columnMap = [
-            'slNo', 'date', 'memberName', 'ahid', 'serviceTypeId', 'packageType', 
+            'slNo', 'date', 'memberName', 'ahid', 'serviceTypeId', 'packageType',
             'hcpName', 'collectedBy', 'modeOfTransaction', 'transactionId',
             'totalBillAmount', 'discountGiven', 'referralAmount', 'referralStatus',
-            'referralPaymentMode', 'referralTransactionId', 'paymentByUs', 'modeOfTransfer', 
+            'referralPaymentMode', 'referralTransactionId', 'paymentByUs', 'modeOfTransfer',
             'paidTo', 'amountPaid', 'paymentStatus'
         ];
-        
+
         const column = columnMap[index];
-        
+
         if (column && column !== 'paymentDetails') { // Skip payment details columns for now
             header.style.cursor = 'pointer';
             header.addEventListener('click', () => {
