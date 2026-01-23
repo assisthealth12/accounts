@@ -117,6 +117,9 @@ class DashboardManager {
 
         // Set up Firestore listeners for real-time updates
         this.setupRealTimeListeners();
+
+        // Set up network status monitoring
+        this.setupNetworkMonitoring();
     }
 
     // Load navigator dashboard
@@ -133,6 +136,29 @@ class DashboardManager {
 
         // Set up Firestore listeners for real-time updates
         this.setupRealTimeListeners();
+
+        // Set up network status monitoring
+        this.setupNetworkMonitoring();
+    }
+
+    // Setup network status monitoring
+    setupNetworkMonitoring() {
+        if (window.networkStatus) {
+            window.networkStatus.addListener((isOnline) => {
+                if (isOnline) {
+                    console.log('Back online - refreshing dashboard data...');
+                    // Refresh data when back online
+                    setTimeout(() => {
+                        this.loadData().then(() => {
+                            this.renderDashboard();
+                            console.log('Dashboard data refreshed');
+                        });
+                    }, 1000);
+                } else {
+                    console.warn('Offline - using cached data');
+                }
+            });
+        }
     }
 
     // Update sidebar navigation based on role
@@ -147,6 +173,8 @@ class DashboardManager {
                 <li id="manage-employees">Manage Employees</li>
                 <li id="manage-services">Manage Services</li>
                 <li id="manage-providers">Manage Healthcare Providers</li>
+                <li id="office-expenses">Office Expenses</li>
+                <li id="manage-paid-by">Manage Paid By</li>
             `;
         } else if (role === 'navigator') {
             navItems = `
@@ -205,6 +233,22 @@ class DashboardManager {
             if (manageServicesEl) {
                 manageServicesEl.addEventListener('click', () => {
                     this.showManageServices();
+                });
+            }
+
+            // Office expenses navigation
+            const officeExpensesEl = document.getElementById('office-expenses');
+            if (officeExpensesEl) {
+                officeExpensesEl.addEventListener('click', () => {
+                    this.showOfficeExpenses();
+                });
+            }
+
+            // Manage paid by navigation
+            const managePaidByEl = document.getElementById('manage-paid-by');
+            if (managePaidByEl) {
+                managePaidByEl.addEventListener('click', () => {
+                    window.paidByPersonsManager.showManagePersonsModal();
                 });
             }
         }
@@ -447,6 +491,35 @@ class DashboardManager {
             // Small delay to ensure screen is properly displayed before loading invoices
             setTimeout(() => {
                 window.invoiceGeneratorManager.loadInvoicesForDisplay();
+            }, 100);
+        }
+    }
+
+    // Show office expenses section (admin only)
+    showOfficeExpenses() {
+        // Check if user is admin
+        if (this.currentUserRole !== 'admin') {
+            alert('Access denied: Only admins can manage office expenses');
+            return;
+        }
+
+        // Create screen if it doesn't exist
+        if (!document.getElementById('office-expenses-screen')) {
+            if (window.officeExpensesUI) {
+                window.officeExpensesUI.createExpensesScreen();
+            }
+        }
+
+        // Switch to office expenses screen
+        this.switchToScreen('office-expenses');
+
+        // Update active nav
+        this.updateActiveNav('office-expenses');
+
+        // Load expenses
+        if (window.officeExpensesManager) {
+            setTimeout(() => {
+                window.officeExpensesManager.loadExpensesForDisplay();
             }, 100);
         }
     }

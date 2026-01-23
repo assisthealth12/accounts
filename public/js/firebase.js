@@ -266,6 +266,33 @@ window.firebaseUtils = {
             throw error;
         }
     },
+
+    // Function to get next office expense number
+    getNextOfficeExpenseNumber: async function () {
+        try {
+            const counterRef = db.collection('counters').doc('officeExpenseCounter');
+
+            const result = await db.runTransaction(async (transaction) => {
+                const counterDoc = await transaction.get(counterRef);
+
+                let nextNumber = 1;
+                if (counterDoc.exists) {
+                    const currentNumber = counterDoc.data().officeExpenseLastNo || 0;
+                    nextNumber = currentNumber + 1;
+                    transaction.update(counterRef, { officeExpenseLastNo: nextNumber });
+                } else {
+                    transaction.set(counterRef, { officeExpenseLastNo: 1 });
+                }
+
+                return nextNumber;
+            });
+
+            return result;
+        } catch (error) {
+            console.error('Error getting next office expense number:', error);
+            throw error;
+        }
+    }
 };
 
 console.log('Firebase initialized');

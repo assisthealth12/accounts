@@ -523,14 +523,14 @@ class AddEntryManager {
     // Update payment calculations
     updatePaymentCalculations() {
         const totalAmount = parseFloat(document.getElementById('total-amount-to-pay').value) || 0;
-        const paidAmount = this.calculateTotalPaid();
-        const balanceAmount = totalAmount - paidAmount;
+        const paidAmount = Math.round(this.calculateTotalPaid() * 100) / 100;
+        const balanceAmount = Math.round((totalAmount - paidAmount) * 100) / 100;
 
         // Determine payment status
         let status = 'Not Started';
         if (paidAmount > 0 && balanceAmount > 0) {
             status = 'Partially Paid';
-        } else if (balanceAmount === 0 && paidAmount > 0) {
+        } else if (paidAmount > 0 && balanceAmount <= 0.001) {
             status = 'Completed';
         }
 
@@ -821,13 +821,13 @@ class AddEntryManager {
                     return;
                 }
 
-                const paidAmount = this.calculateTotalPaid();
-                const balanceAmount = totalAmount - paidAmount;
+                const paidAmount = Math.round(this.calculateTotalPaid() * 100) / 100;
+                const balanceAmount = Math.round((totalAmount - paidAmount) * 100) / 100;
 
                 let status = 'Not Started';
                 if (paidAmount > 0 && balanceAmount > 0) {
                     status = 'Partially Paid';
-                } else if (balanceAmount === 0 && paidAmount > 0) {
+                } else if (paidAmount > 0 && balanceAmount <= 0.001) {
                     status = 'Completed';
                 }
 

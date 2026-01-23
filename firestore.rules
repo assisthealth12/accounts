@@ -1,0 +1,217 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    function signedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+    
+    function isNavigator() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "navigator";
+    }
+    
+    // Validate Payment By Us structure
+    function validatePaymentByUs(paymentData) {
+      return !paymentData.enabled 
+        || (
+          paymentData.totalAmount >= 0
+          && paymentData.paidAmount >= 0
+          && paymentData.paidAmount <= paymentData.totalAmount
+          && paymentData.balanceAmount == (paymentData.totalAmount - paymentData.paidAmount)
+        );
+    }
+    
+    // Validate Office Expense data
+    function validateOfficeExpense(expenseData) {
+      return expenseData.keys().hasAll([
+        'slNo', 'date', 'expenseCategory', 'details', 
+        'paidBy', 'paidTo', 'amount', 'modeOfTransaction',
+        'createdBy', 'createdByName'
+      ])
+      && expenseData.amount > 0
+      && expenseData.amount is number
+      && expenseData.slNo is int
+      && expenseData.createdBy == request.auth.uid
+      && (
+        (expenseData.modeOfTransaction in ['UPI', 'Bank Transfer'] 
+          && expenseData.keys().hasAll(['transactionId']) 
+          && expenseData.transactionId is string
+          && expenseData.transactionId.size() > 0
+        )
+        || (expenseData.modeOfTransaction in ['Cash', 'Credit Card', 'Debit Card'])
+      );
+    }
+    
+    // ============================================
+    // USER MANAGEMENT
+    // ============================================
+    
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update, delete: if isAdmin();
+    }
+    
+    match /allowed_users/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // ============================================
+    // MASTER DATA
+    // ============================================
+    
+    match /services_master/{serviceId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    
+    match /healthcare_providers/{providerId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    
+    // NEW: Paid By Persons (for Office Expenses)
+    match /paid_by_persons/{personId} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasAll(['name', 'active', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.active is bool;
+      allow update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['name', 'active'])
+        && request.resource.data.active is bool;
+      allow delete: if false; // Soft delete only (set active = false)
+    }
+    
+    // ============================================
+    // COUNTERS
+    // ============================================
+    
+    // Service entry counter (uses 'value' field)
+    match /counters/serviceEntryLastNo {
+      allow read: if signedIn();
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly(['value'])
+        && request.resource.data.value is int
+        && request.resource.data.value > resource.data.value;
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['value'])
+        && request.resource.data.value is int;
+    }
+    
+    // Invoice counter (uses 'value' field)
+    match /counters/invoiceLastNo {
+      allow read: if signedIn();
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly(['value'])
+        && request.resource.data.value is int
+        && request.resource.data.value > resource.data.value;
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['value'])
+        && request.resource.data.value is int;
+    }
+    
+    // Office expense counter (uses 'officeExpenseLastNo' field)
+    match /counters/officeExpenseCounter {
+      allow read: if signedIn();
+      allow update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['officeExpenseLastNo'])
+        && request.resource.data.officeExpenseLastNo is int
+        && request.resource.data.officeExpenseLastNo > resource.data.officeExpenseLastNo;
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['officeExpenseLastNo'])
+        && request.resource.data.officeExpenseLastNo is int;
+    }
+    
+    // Generic counter fallback (for any other counters)
+    match /counters/{counterId} {
+      allow read: if signedIn();
+      allow update: if signedIn();
+      allow create: if isAdmin();
+      allow delete: if false;
+    }
+    
+    // ============================================
+    // SERVICE ENTRIES
+    // ============================================
+    
+    match /service_entries/{entryId} {
+      allow read: if isAdmin()
+        || (isNavigator() && resource.data.navigatorId == request.auth.uid);
+      
+      allow create: if isAdmin()
+        || (isNavigator() && request.resource.data.navigatorId == request.auth.uid);
+      
+      allow update: if isAdmin()
+        || (isNavigator()
+          && resource.data.navigatorId == request.auth.uid
+          && request.resource.data.navigatorId == resource.data.navigatorId
+          && (!request.resource.data.keys().hasAny(['paymentByUs']) 
+              || validatePaymentByUs(request.resource.data.paymentByUs))
+        );
+      
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // INVOICES
+    // ============================================
+    
+    match /invoices/{invoiceId} {
+      allow read: if isAdmin()
+        || (isNavigator() && resource.data.createdBy == request.auth.uid);
+      
+      allow create: if signedIn()
+        && (isAdmin() || isNavigator())
+        && request.resource.data.createdBy == request.auth.uid;
+      
+      allow update: if isAdmin()
+        || (isNavigator()
+          && resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdBy == resource.data.createdBy
+        );
+      
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // OFFICE EXPENSES (ADMIN ONLY)
+    // ============================================
+    
+    match /office_expenses/{expenseId} {
+      // Only admins can read office expenses
+      allow read: if isAdmin();
+      
+      // Only admins can create office expenses
+      // Must have all required fields and valid data
+      allow create: if isAdmin()
+        && validateOfficeExpense(request.resource.data)
+        && request.resource.data.createdAt == request.time;
+      
+      // Only admins can update office expenses
+      // Cannot change createdBy or slNo
+      allow update: if isAdmin()
+        && validateOfficeExpense(request.resource.data)
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.slNo == resource.data.slNo
+        && request.resource.data.updatedAt == request.time;
+      
+      // Only admins can delete office expenses
+      allow delete: if isAdmin();
+    }
+  }
+}
