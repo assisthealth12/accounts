@@ -1512,6 +1512,7 @@ class DashboardManager {
                                 <option value="">All</option>
                                 <option value="Received">Received</option>
                                 <option value="Pending">Pending</option>
+                                <option value="None">None</option>
                             </select>
                         </div>
                         

@@ -263,7 +263,7 @@ class AddEntryManager {
         document.getElementById('total-bill-amount').value = '0';
         document.getElementById('discount-given').value = '0';
         document.getElementById('referral-amount').value = '0';
-        document.getElementById('referral-status').value = 'Pending';
+        document.getElementById('referral-status').value = 'None';
         document.getElementById('payment-by-us').value = 'No';
 
         // Clear payment by us fields

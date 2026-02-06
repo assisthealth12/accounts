@@ -122,7 +122,7 @@ class ChartsManager {
         }
         
         // Count referral statuses
-        const referralCounts = { 'Pending': 0, 'Received': 0 };
+        const referralCounts = { 'Pending': 0, 'Received': 0, 'None': 0 };
         entries.forEach(entry => {
             const status = entry.referralStatus || 'Pending';
             if (referralCounts.hasOwnProperty(status)) {
@@ -141,11 +141,13 @@ class ChartsManager {
                     data: counts,
                     backgroundColor: [
                         'rgba(255, 205, 86, 0.8)',
-                        'rgba(75, 192, 192, 0.8)'
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)'
                     ],
                     borderColor: [
                         'rgba(255, 205, 86, 1)',
-                        'rgba(75, 192, 192, 1)'
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)'
                     ],
                     borderWidth: 1
                 }]
