@@ -72,14 +72,6 @@ class AddEntryManager {
         const modal = document.getElementById('entry-modal');
         const modalTitle = document.getElementById('modal-title');
 
-        if (this.isEditing) {
-            modalTitle.textContent = 'Edit Service Entry';
-            this.populateFormWithEntry(entry);
-        } else {
-            modalTitle.textContent = 'Add Service Entry';
-            this.clearForm();
-        }
-
         // Load services dropdown
         if (window.servicesManager && typeof window.servicesManager.loadServicesDropdown === 'function') {
             await window.servicesManager.loadServicesDropdown();
@@ -87,6 +79,14 @@ class AddEntryManager {
 
         // Load HCP dropdown
         await this.populateHCPDropdown();
+
+        if (this.isEditing) {
+            modalTitle.textContent = 'Edit Service Entry';
+            this.populateFormWithEntry(entry);
+        } else {
+            modalTitle.textContent = 'Add Service Entry';
+            this.clearForm();
+        }
 
         // Show the modal with animation
         modal.style.display = 'flex';
@@ -185,7 +185,7 @@ class AddEntryManager {
             this.togglePaymentDetails('No');
         }
         // Show/hide payment details based on paymentByUs value
-        this.togglePaymentDetails(entry.paymentByUs);
+        this.togglePaymentDetails(entry.paymentByUs && entry.paymentByUs.enabled ? 'Yes' : 'No');
 
         // Populate collection details if they exist
         if (entry.collectionDetails) {

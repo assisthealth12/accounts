@@ -158,27 +158,112 @@ class PaidByPersonsManager {
 
     // Show manage persons modal
     async showManagePersonsModal() {
+        return this.showManagePersonsScreen();
+    }
+
+    // Show manage persons screen
+    async showManagePersonsScreen() {
         // Check if user is admin
         if (window.authService.getUserRole() !== 'admin') {
             alert('Access denied: Only admins can manage paid-by persons');
             return;
         }
 
-        // Create modal if it doesn't exist
-        if (!document.getElementById('manage-paid-by-modal')) {
-            this.createManagePaidByModal();
-        }
+        this.createManagePaidByScreen();
 
-        const modal = document.getElementById('manage-paid-by-modal');
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('show'), 10);
-
-        // Update active nav if dashboard manager exists
         if (window.dashboardManager) {
+            window.dashboardManager.switchToScreen('manage-paid-by');
             window.dashboardManager.updateActiveNav('manage-paid-by');
         }
 
         this.loadAndDisplayPersons();
+    }
+
+    createManagePaidByScreen() {
+        const dashboardContent = document.querySelector('.dashboard-content');
+        if (!dashboardContent || document.getElementById('manage-paid-by-screen')) return;
+
+        const screenElement = document.createElement('div');
+        screenElement.id = 'manage-paid-by-screen';
+        screenElement.className = 'dashboard-screen';
+        screenElement.style.display = 'none';
+        screenElement.innerHTML = `
+            <div class="section-header">
+                <div>
+                    <h1>Manage Paid By</h1>
+                    <p>Maintain the list of people available in office expense payment filters.</p>
+                </div>
+            </div>
+            <div class="section-panel">
+                <div class="provider-form-grid compact-form-grid">
+                    <input type="text" id="new-paid-by-name" placeholder="Enter person name">
+                    <button id="add-paid-by-btn" class="btn-primary">Add Person</button>
+                </div>
+            </div>
+            <div class="section-panel">
+                <div class="provider-toolbar">
+                    <div class="filter-group">
+                        <label for="paid-by-search">Search Paid By</label>
+                        <input type="text" id="paid-by-search" placeholder="Search name or status">
+                    </div>
+                </div>
+                <div id="paid-by-loading" class="loading-state" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> Loading persons...
+                </div>
+                <div id="paid-by-empty" class="empty-state" style="display: none;">
+                    <i class="fas fa-user-tag"></i>
+                    <h4>No persons found</h4>
+                    <p>Add your first paid-by person to get started.</p>
+                </div>
+                <div class="table-container">
+                    <table id="paid-by-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paid-by-table-body">
+                            <!-- Person rows will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        dashboardContent.appendChild(screenElement);
+
+        document.getElementById('add-paid-by-btn').addEventListener('click', async () => {
+            await this.addPersonFromScreen();
+        });
+
+        document.getElementById('new-paid-by-name').addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                await this.addPersonFromScreen();
+            }
+        });
+
+        document.getElementById('paid-by-search').addEventListener('input', () => {
+            this.loadAndDisplayPersons();
+        });
+    }
+
+    async addPersonFromScreen() {
+        const personName = document.getElementById('new-paid-by-name').value.trim();
+        if (personName) {
+            try {
+                await this.addPerson(personName);
+                document.getElementById('new-paid-by-name').value = '';
+                this.loadAndDisplayPersons();
+            } catch (error) {
+                console.error('Error adding person:', error);
+                alert('Error adding paid-by person: ' + error.message);
+            }
+        } else {
+            alert('Please enter a person name');
+        }
     }
 
     // Create manage paid-by persons modal
@@ -297,24 +382,29 @@ class PaidByPersonsManager {
             if (emptyDiv) emptyDiv.style.display = 'none';
 
             const persons = await this.getPersons();
+            const searchTerm = (document.getElementById('paid-by-search')?.value || '').toLowerCase().trim();
+            const filteredPersons = persons.filter(person => {
+                if (!searchTerm) return true;
+
+                const statusText = person.active ? 'active' : 'inactive';
+                return `${person.name || ''} ${statusText}`.toLowerCase().includes(searchTerm);
+            }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
             // Hide loading state
             if (loadingDiv) loadingDiv.style.display = 'none';
 
-            if (persons.length === 0) {
+            if (filteredPersons.length === 0) {
                 if (emptyDiv) emptyDiv.style.display = 'block';
                 return;
             }
 
             if (emptyDiv) emptyDiv.style.display = 'none';
 
-            persons.forEach(person => {
+            filteredPersons.forEach(person => {
                 const row = document.createElement('tr');
 
                 // Format date
-                const createdAt = person.createdAt ?
-                    person.createdAt.toDate().toLocaleDateString() :
-                    'N/A';
+                const createdAt = formatDateDDMMYYYY(person.createdAt) || 'N/A';
 
                 const statusText = person.active ? 'Active' : 'Inactive';
                 const statusClass = person.active ? 'status-active' : 'status-inactive';

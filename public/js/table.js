@@ -4,6 +4,8 @@ class TableManager {
         this.entries = [];
         this.filteredEntries = [];
         this.currentSort = { column: null, direction: 'asc' };
+        this.currentPage = 1;
+        this.pageSize = 25;
         this.initTable();
     }
 
@@ -15,6 +17,7 @@ class TableManager {
     // Update table with entries
     updateTable(entries) {
         this.entries = entries;
+        this.currentPage = 1;
         this.renderTable();
     }
 
@@ -26,14 +29,79 @@ class TableManager {
         // Clear existing rows
         tableBody.innerHTML = '';
 
+        const totalPages = this.getTotalPages();
+        if (this.currentPage > totalPages) {
+            this.currentPage = totalPages;
+        }
+
+        const pageEntries = this.getPaginatedEntries();
+
+        if (pageEntries.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="24" class="empty-table-message">No entries found</td>';
+            tableBody.appendChild(row);
+            this.renderPagination();
+            return;
+        }
+
         // Add rows for each entry
-        this.entries.forEach(entry => {
+        pageEntries.forEach(entry => {
             const row = this.createTableRow(entry);
             tableBody.appendChild(row);
         });
 
         // Add event listeners for edit buttons
         this.addEventListeners();
+        this.renderPagination();
+    }
+
+    getTotalPages() {
+        return Math.max(1, Math.ceil(this.entries.length / this.pageSize));
+    }
+
+    getPaginatedEntries() {
+        const startIndex = (this.currentPage - 1) * this.pageSize;
+        return this.entries.slice(startIndex, startIndex + this.pageSize);
+    }
+
+    renderPagination() {
+        const table = document.getElementById('entries-table');
+        if (!table || !table.parentElement) return;
+
+        let pagination = document.getElementById('entries-pagination');
+        if (!pagination) {
+            pagination = document.createElement('div');
+            pagination.id = 'entries-pagination';
+            pagination.className = 'pagination-controls';
+            table.parentElement.insertAdjacentElement('afterend', pagination);
+        }
+
+        const totalPages = this.getTotalPages();
+        const totalEntries = this.entries.length;
+        const startEntry = totalEntries === 0 ? 0 : ((this.currentPage - 1) * this.pageSize) + 1;
+        const endEntry = Math.min(this.currentPage * this.pageSize, totalEntries);
+
+        pagination.innerHTML = `
+            <div class="pagination-info">Showing ${startEntry}-${endEntry} of ${totalEntries}</div>
+            <div class="pagination-actions">
+                <button type="button" class="btn-secondary pagination-btn" data-page-action="prev" ${this.currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                <span class="pagination-page">Page ${this.currentPage} of ${totalPages}</span>
+                <button type="button" class="btn-secondary pagination-btn" data-page-action="next" ${this.currentPage === totalPages ? 'disabled' : ''}>Next</button>
+            </div>
+        `;
+
+        pagination.querySelectorAll('.pagination-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const action = e.currentTarget.getAttribute('data-page-action');
+                if (action === 'prev' && this.currentPage > 1) {
+                    this.currentPage -= 1;
+                } else if (action === 'next' && this.currentPage < totalPages) {
+                    this.currentPage += 1;
+                }
+
+                this.renderTable();
+            });
+        });
     }
 
     // Create a table row for an entry
@@ -52,7 +120,7 @@ class TableManager {
             ? `₹${entry.paymentDetails.amountPaid.toLocaleString()}` : '';
 
         // Format date
-        const dateStr = entry.date ? new Date(entry.date).toLocaleDateString() : '';
+        const dateStr = formatDateDDMMYYYY(entry.date);
 
         // Get service name
         const serviceName = this.getServiceNameById(entry.serviceTypeId);
@@ -163,6 +231,8 @@ class TableManager {
             this.currentSort.direction = 'asc';
         }
 
+        this.currentPage = 1;
+
         // Sort the entries
         this.entries.sort((a, b) => {
             let valA = a[column];
@@ -179,26 +249,26 @@ class TableManager {
                 // Sort by payment status if payment details exist
                 valA = valA && valA.paymentStatus ? valA.paymentStatus : '';
                 valB = valB && valB.paymentStatus ? valB.paymentStatus : '';
-            } else if (column === 'collectionMethod') {
+            } else if (column === 'collectionMethod' || column === 'collectedBy') {
                 // Get collection method from collectionDetails
-                valA = valA && valA.collectionDetails ? valA.collectionDetails.collectedBy || '' : '';
-                valB = valB && valB.collectionDetails ? valB.collectionDetails.collectedBy || '' : '';
-            } else if (column === 'transactionMode') {
+                valA = a.collectionDetails ? a.collectionDetails.collectedBy || '' : '';
+                valB = b.collectionDetails ? b.collectionDetails.collectedBy || '' : '';
+            } else if (column === 'transactionMode' || column === 'modeOfTransaction') {
                 // Get transaction mode from collectionDetails
-                valA = valA && valA.collectionDetails ? valA.collectionDetails.modeOfTransaction || '' : '';
-                valB = valB && valB.collectionDetails ? valB.collectionDetails.modeOfTransaction || '' : '';
+                valA = a.collectionDetails ? a.collectionDetails.modeOfTransaction || '' : '';
+                valB = b.collectionDetails ? b.collectionDetails.modeOfTransaction || '' : '';
             } else if (column === 'transactionId') {
                 // Get transaction ID from collectionDetails
-                valA = valA && valA.collectionDetails ? valA.collectionDetails.transactionId || '' : '';
-                valB = valB && valB.collectionDetails ? valB.collectionDetails.transactionId || '' : '';
+                valA = a.collectionDetails ? a.collectionDetails.transactionId || '' : '';
+                valB = b.collectionDetails ? b.collectionDetails.transactionId || '' : '';
             } else if (column === 'referralPaymentMode') {
                 // Get referral payment mode from referralPaymentDetails
-                valA = valA && valA.referralPaymentDetails ? valA.referralPaymentDetails.paymentMode || '' : '';
-                valB = valB && valB.referralPaymentDetails ? valB.referralPaymentDetails.paymentMode || '' : '';
+                valA = a.referralPaymentDetails ? a.referralPaymentDetails.paymentMode || '' : '';
+                valB = b.referralPaymentDetails ? b.referralPaymentDetails.paymentMode || '' : '';
             } else if (column === 'referralTransactionId') {
                 // Get referral transaction ID from referralPaymentDetails
-                valA = valA && valA.referralPaymentDetails ? valA.referralPaymentDetails.transactionId || '' : '';
-                valB = valB && valB.referralPaymentDetails ? valB.referralPaymentDetails.transactionId || '' : '';
+                valA = a.referralPaymentDetails ? a.referralPaymentDetails.transactionId || '' : '';
+                valB = b.referralPaymentDetails ? b.referralPaymentDetails.transactionId || '' : '';
             } else {
                 valA = valA || '';
                 valB = valB || '';

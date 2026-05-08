@@ -239,6 +239,8 @@
 
                             <div class="filter-group">
                                 <label for="filter-service-type">Service Type</label>
+                                <input type="text" id="filter-service-type-search" class="filter-search-input"
+                                    placeholder="Search services...">
                                 <select id="filter-service-type">
                                     <option value="">All</option>
                                     <!-- Options populated by JavaScript -->
@@ -257,9 +259,19 @@
 
                             <div class="filter-group">
                                 <label for="filter-hcp">Healthcare Provider</label>
+                                <input type="text" id="filter-hcp-search" class="filter-search-input"
+                                    placeholder="Search providers...">
                                 <select id="filter-hcp">
                                     <option value="">All</option>
                                     <!-- Options populated by JavaScript -->
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="filter-date-sort">Date Order</label>
+                                <select id="filter-date-sort">
+                                    <option value="desc">Newest First</option>
+                                    <option value="asc">Oldest First</option>
                                 </select>
                             </div>
                         </div>
@@ -306,6 +318,8 @@
                             <!-- Navigator filter (admin only) -->
                             <div id="navigator-filter" class="filter-group" style="display: none;">
                                 <label for="filter-navigator">Navigator</label>
+                                <input type="text" id="filter-navigator-search" class="filter-search-input"
+                                    placeholder="Search navigators...">
                                 <select id="filter-navigator">
                                     <option value="">All</option>
                                     <!-- Options populated by JavaScript -->
@@ -670,50 +684,6 @@
         </div>
     </div>
     </div>
-    </div>
-
-    <!-- Manage Healthcare Providers Modal -->
-    <div id="manage-providers-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Manage Healthcare Providers</h3>
-                <span class="close" id="close-providers-modal">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="new-provider-name">Add New Provider</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="text" id="new-provider-name" placeholder="Enter provider name">
-                        <button id="add-provider-btn" class="btn-primary">Add Provider</button>
-                    </div>
-                </div>
-                <div id="providers-loading" class="loading-state" style="display: none;">
-                    <i class="fas fa-spinner fa-spin"></i> Loading providers...
-                </div>
-                <div id="providers-empty" class="empty-state" style="display: none;">
-                    <i class="fas fa-hospital"></i>
-                    <h4>No providers found</h4>
-                    <p>Add your first healthcare provider to get started.</p>
-                </div>
-                <div class="table-container">
-                    <table id="providers-table">
-                        <thead>
-                            <tr>
-                                <th>Provider Name</th>
-                                <th>Contact</th>
-                                <th>Email</th>
-                                <th>Status</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="providers-table-body">
-                            <!-- Provider rows will be populated here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script src="./js/firebase.js"></script>

@@ -1,9 +1,48 @@
+class ScreenManager {
+    constructor(rootElement, createScreen) {
+        this.rootElement = rootElement;
+        this.createScreen = createScreen;
+        this.activeScreen = 'dashboard';
+    }
+
+    switchTo(screenName) {
+        if (!this.rootElement) return;
+
+        const dashboardElements = Array.from(this.rootElement.children)
+            .filter(child => !child.classList.contains('dashboard-screen'));
+        const screens = Array.from(this.rootElement.querySelectorAll(':scope > .dashboard-screen'));
+
+        dashboardElements.forEach(element => {
+            element.style.display = screenName === 'dashboard' ? '' : 'none';
+        });
+
+        screens.forEach(screen => {
+            screen.style.display = 'none';
+        });
+
+        if (screenName !== 'dashboard') {
+            let targetScreen = document.getElementById(`${screenName}-screen`);
+            if (!targetScreen && typeof this.createScreen === 'function') {
+                this.createScreen(screenName);
+                targetScreen = document.getElementById(`${screenName}-screen`);
+            }
+
+            if (targetScreen) {
+                targetScreen.style.display = 'block';
+            }
+        }
+
+        this.activeScreen = screenName;
+    }
+}
+
 // Dashboard Manager
 class DashboardManager {
     constructor() {
         this.entries = [];
         this.filteredEntries = [];
         this.services = [];
+        this.serviceNameById = new Map();
         this.navigators = [];
         this.currentUser = null;
         this.currentUserRole = null;
@@ -12,17 +51,16 @@ class DashboardManager {
         this.referralPieChart = null;
         this.paymentPieChart = null;
         this.unsubscribeListeners = [];
-        this.providersEventListenersAdded = false;
         this.originalDashboardContent = null;
         this.currentScreen = 'dashboard'; // Track current screen
+        this.screenManager = null;
 
         this.initDashboard();
     }
 
     // Initialize dashboard
     initDashboard() {
-        // Set up event listeners for dashboard UI
-        document.addEventListener('DOMContentLoaded', () => {
+        const initialize = () => {
             try {
                 // Create initial screens
                 this.createScreen('dashboard');
@@ -31,7 +69,14 @@ class DashboardManager {
             } catch (error) {
                 console.error('Error in dashboard initialization:', error);
             }
-        });
+        };
+
+        // Set up event listeners for dashboard UI
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize, { once: true });
+        } else {
+            initialize();
+        }
     }
 
     // Set up event listeners
@@ -67,6 +112,8 @@ class DashboardManager {
                 this.applyDatePreset(e.target.dataset.preset);
             });
         });
+
+        this.bindFilterSearchInputs();
 
         // Download Excel button
         const downloadExcelBtn = document.getElementById('download-excel-btn');
@@ -248,7 +295,7 @@ class DashboardManager {
             const managePaidByEl = document.getElementById('manage-paid-by');
             if (managePaidByEl) {
                 managePaidByEl.addEventListener('click', () => {
-                    window.paidByPersonsManager.showManagePersonsModal();
+                    window.paidByPersonsManager.showManagePersonsScreen();
                 });
             }
         }
@@ -262,19 +309,75 @@ class DashboardManager {
             return;
         }
 
-        // Create modal for managing employees if it doesn't exist
-        if (!document.getElementById('manage-employees-modal')) {
-            this.createManageEmployeesModal();
-        }
-
-        const modal = document.getElementById('manage-employees-modal');
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('show'), 10);
-
+        this.createManageEmployeesScreen();
+        this.switchToScreen('manage-employees');
         this.updateActiveNav('manage-employees');
 
         // Load and display employees
         this.loadAndDisplayEmployees();
+    }
+
+    createManageEmployeesScreen() {
+        const dashboardContent = document.querySelector('.dashboard-content');
+        if (!dashboardContent || document.getElementById('manage-employees-screen')) return;
+
+        const screenElement = document.createElement('div');
+        screenElement.id = 'manage-employees-screen';
+        screenElement.className = 'dashboard-screen';
+        screenElement.style.display = 'none';
+        screenElement.innerHTML = `
+            <div class="section-header">
+                <div>
+                    <h1>Manage Employees</h1>
+                    <p>Review navigators and pending activations.</p>
+                </div>
+                <button id="add-employee-btn" class="btn-primary">
+                    <i class="fas fa-plus"></i> Add Employee
+                </button>
+            </div>
+            <div class="section-panel">
+                <div class="provider-toolbar">
+                    <div class="filter-group">
+                        <label for="employee-search">Search Employees</label>
+                        <input type="text" id="employee-search" placeholder="Search name, email, role, or status">
+                    </div>
+                </div>
+                <div id="employees-loading" class="loading-state" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> Loading employees...
+                </div>
+                <div id="employees-empty" class="empty-state" style="display: none;">
+                    <i class="fas fa-users"></i>
+                    <h4>No employees found</h4>
+                    <p>Add your first employee to get started.</p>
+                </div>
+                <div class="table-container">
+                    <table id="employees-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employees-table-body">
+                            <!-- Employee rows will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        dashboardContent.appendChild(screenElement);
+
+        document.getElementById('add-employee-btn').addEventListener('click', async () => {
+            await window.userManagement.showAddEmployeeModal();
+        });
+
+        document.getElementById('employee-search').addEventListener('input', () => {
+            this.loadAndDisplayEmployees();
+        });
     }
 
     // Create manage employees modal
@@ -423,24 +526,34 @@ class DashboardManager {
 
             if (emptyDiv) emptyDiv.style.display = 'none';
 
-            // Sort by priority (Active first), then by creation date (newest first)
-            allEmployees.sort((a, b) => {
-                if (a.priority !== b.priority) {
-                    return a.priority - b.priority;
-                }
-                // Sort by date - newest first
-                const aTime = a.createdAt?.toMillis() || 0;
-                const bTime = b.createdAt?.toMillis() || 0;
-                return bTime - aTime;
+            const searchTerm = (document.getElementById('employee-search')?.value || '').toLowerCase().trim();
+            const filteredEmployees = allEmployees.filter(user => {
+                if (!searchTerm) return true;
+
+                return [
+                    user.name || '',
+                    user.email || '',
+                    user.role || '',
+                    user.status || ''
+                ].join(' ').toLowerCase().includes(searchTerm);
             });
 
+            if (filteredEmployees.length === 0) {
+                if (emptyDiv) emptyDiv.style.display = 'block';
+                return;
+            }
+
+            // Sort alphabetically by name, then email.
+            filteredEmployees.sort((a, b) =>
+                (a.name || '').localeCompare(b.name || '') ||
+                (a.email || '').localeCompare(b.email || '')
+            );
+
             // Render table rows
-            allEmployees.forEach(user => {
+            filteredEmployees.forEach(user => {
                 const row = document.createElement('tr');
 
-                const createdAt = user.createdAt ?
-                    user.createdAt.toDate().toLocaleDateString() :
-                    'N/A';
+                const createdAt = formatDateDDMMYYYY(user.createdAt) || 'N/A';
 
                 const statusClass = user.isActive ? 'status-active' : 'status-pending';
 
@@ -532,17 +645,93 @@ class DashboardManager {
             return;
         }
 
-        // Create modal if it doesn't exist
-        if (!document.getElementById('manage-services-modal')) {
-            this.createManageServicesModal();
-        }
-
-        const modal = document.getElementById('manage-services-modal');
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('show'), 10);
-
+        this.createManageServicesScreen();
+        this.switchToScreen('manage-services');
         this.updateActiveNav('manage-services');
         this.loadAndDisplayServices();
+    }
+
+    createManageServicesScreen() {
+        const dashboardContent = document.querySelector('.dashboard-content');
+        if (!dashboardContent || document.getElementById('manage-services-screen')) return;
+
+        const screenElement = document.createElement('div');
+        screenElement.id = 'manage-services-screen';
+        screenElement.className = 'dashboard-screen';
+        screenElement.style.display = 'none';
+        screenElement.innerHTML = `
+            <div class="section-header">
+                <div>
+                    <h1>Manage Services</h1>
+                    <p>Add services and control whether they appear in account forms.</p>
+                </div>
+            </div>
+            <div class="section-panel">
+                <div class="provider-form-grid compact-form-grid">
+                    <input type="text" id="new-service-name" placeholder="Enter service name">
+                    <button id="add-service-btn" class="btn-primary">Add Service</button>
+                </div>
+            </div>
+            <div class="section-panel">
+                <div class="provider-toolbar">
+                    <div class="filter-group">
+                        <label for="service-search">Search Services</label>
+                        <input type="text" id="service-search" placeholder="Search service name or status">
+                    </div>
+                </div>
+                <div id="services-loading" class="loading-state" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> Loading services...
+                </div>
+                <div id="services-empty" class="empty-state" style="display: none;">
+                    <i class="fas fa-concierge-bell"></i>
+                    <h4>No services found</h4>
+                    <p>Add your first service to get started.</p>
+                </div>
+                <div class="table-container">
+                    <table id="services-table">
+                        <thead>
+                            <tr>
+                                <th>Service Name</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="services-table-body">
+                            <!-- Service rows will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        dashboardContent.appendChild(screenElement);
+
+        document.getElementById('add-service-btn').addEventListener('click', async () => {
+            const serviceName = document.getElementById('new-service-name').value.trim();
+            if (serviceName) {
+                try {
+                    await window.userManagement.addService(serviceName);
+                    document.getElementById('new-service-name').value = '';
+                    this.loadAndDisplayServices();
+                } catch (error) {
+                    console.error('Error adding service:', error);
+                    alert('Error adding service: ' + error.message);
+                }
+            } else {
+                alert('Please enter a service name');
+            }
+        });
+
+        document.getElementById('new-service-name').addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('add-service-btn').click();
+            }
+        });
+
+        document.getElementById('service-search').addEventListener('input', () => {
+            this.loadAndDisplayServices();
+        });
     }
 
     // Create manage services modal
@@ -644,201 +833,15 @@ class DashboardManager {
             return;
         }
 
-        this.createManageProvidersModal();
-
-        const modal = document.getElementById('manage-providers-modal');
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('show'), 10);
-
-        this.updateActiveNav('manage-providers');
-        this.loadAndDisplayProviders();
-    }
-
-    // Create manage healthcare providers modal
-    createManageProvidersModal() {
-        // Check if modal exists in HTML, if not create it
-        if (!document.getElementById('manage-providers-modal')) {
-            const modalHTML = `
-                <div id="manage-providers-modal" class="modal">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3>Manage Healthcare Providers</h3>
-                            <span class="close" id="close-providers-modal">&times;</span>
-                        </div>
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <label for="new-provider-name">Add New Provider</label>
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <input type="text" id="new-provider-name" placeholder="Enter provider name">
-                                    <button id="add-provider-btn" class="btn-primary">Add Provider</button>
-                                </div>
-                            </div>
-                            <div id="providers-loading" class="loading-state" style="display: none;">
-                                <i class="fas fa-spinner fa-spin"></i> Loading providers...
-                            </div>
-                            <div id="providers-empty" class="empty-state" style="display: none;">
-                                <i class="fas fa-hospital"></i>
-                                <h4>No providers found</h4>
-                                <p>Add your first healthcare provider to get started.</p>
-                            </div>
-                            <div class="table-container">
-                                <table id="providers-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Provider Name</th>
-                                            <th>Contact</th>
-                                            <th>Email</th>
-                                            <th>Status</th>
-                                            <th>Created</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="providers-table-body">
-                                        <!-- Provider rows will be populated here -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-        }
-
-        // Add event listeners if not already added
-        if (!this.providersEventListenersAdded) {
-            document.getElementById('close-providers-modal').addEventListener('click', () => {
-                this.closeModalWithAnimation('manage-providers-modal');
-
-                // Remove active state from navigation
-                this.updateActiveNav(null);
-            });
-
-            // Close modal when clicking outside the content
-            document.getElementById('manage-providers-modal').addEventListener('click', (e) => {
-                if (e.target === document.getElementById('manage-providers-modal')) {
-                    this.closeModalWithAnimation('manage-providers-modal');
-                    this.updateActiveNav(null);
-                }
-            });
-
-            document.getElementById('add-provider-btn').addEventListener('click', async () => {
-                const providerName = document.getElementById('new-provider-name').value.trim();
-                if (providerName) {
-                    try {
-                        await window.healthcareProviderManager.addProvider({
-                            name: providerName,
-                            contact: '',
-                            email: '',
-                            active: true
-                        });
-                        document.getElementById('new-provider-name').value = '';
-                        this.loadAndDisplayProviders(); // Refresh the list
-                    } catch (error) {
-                        console.error('Error adding provider:', error);
-                        alert('Error adding healthcare provider: ' + error.message);
-                    }
-                } else {
-                    alert('Please enter a provider name');
-                }
-            });
-
-            // Also handle Enter key press in the input field
-            document.getElementById('new-provider-name').addEventListener('keypress', async (e) => {
-                if (e.key === 'Enter') {
-                    await document.getElementById('add-provider-btn').click();
-                }
-            });
-
-            this.providersEventListenersAdded = true;
-        }
-
-        // Show modal with animation
-        const modal = document.getElementById('manage-providers-modal');
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('show'), 10);
-    }
-
-    // Load and display healthcare providers
-    async loadAndDisplayProviders() {
-        try {
-            const tableBody = document.getElementById('providers-table-body');
-            const loadingDiv = document.getElementById('providers-loading');
-            const emptyDiv = document.getElementById('providers-empty');
-
-            if (!tableBody) return;
-
-            // Show loading state
-            tableBody.innerHTML = '';
-            loadingDiv.style.display = 'block';
-            emptyDiv.style.display = 'none';
-
-            const providers = await window.healthcareProviderManager.getProviders();
-
-            // Hide loading state
-            loadingDiv.style.display = 'none';
-
-            if (providers.length === 0) {
-                emptyDiv.style.display = 'block';
-                return;
-            }
-
-            emptyDiv.style.display = 'none';
-
-            providers.forEach(provider => {
-                const row = document.createElement('tr');
-
-                // Format date
-                const createdAt = provider.createdAt ?
-                    provider.createdAt.toDate().toLocaleDateString() :
-                    'N/A';
-
-                const statusText = provider.active ? 'Active' : 'Inactive';
-                const statusClass = provider.active ? 'status-active' : 'status-inactive';
-
-                row.innerHTML = `
-                    <td>${provider.name || 'N/A'}</td>
-                    <td>${provider.contact || 'N/A'}</td>
-                    <td>${provider.email || 'N/A'}</td>
-                    <td><span class="status ${statusClass}">${statusText}</span></td>
-                    <td>${createdAt}</td>
-                    <td class="actions-cell">
-                        <button class="btn-action btn-edit" data-provider-id="${provider.id}" data-active="${provider.active}">
-                            ${provider.active ? 'Disable' : 'Enable'}
-                        </button>
-                    </td>
-                `;
-
-                tableBody.appendChild(row);
-            });
-
-            // Add event listeners to action buttons
-            document.querySelectorAll('#providers-table-body .btn-edit').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    const providerId = e.target.getAttribute('data-provider-id');
-                    const currentActive = e.target.getAttribute('data-active') === 'true';
-
-                    try {
-                        await window.healthcareProviderManager.updateProviderStatus(providerId, !currentActive);
-                        this.loadAndDisplayProviders(); // Refresh the list
-                    } catch (error) {
-                        console.error('Error updating provider status:', error);
-                        alert('Error updating provider status: ' + error.message);
-                    }
-                });
-            });
-        } catch (error) {
-            console.error('Error loading providers:', error);
-
-            const loadingDiv = document.getElementById('providers-loading');
-            const emptyDiv = document.getElementById('providers-empty');
-
-            if (loadingDiv) loadingDiv.style.display = 'none';
-            if (emptyDiv) {
-                emptyDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i><h4>Error loading providers</h4><p>${error.message}</p>`;
-                emptyDiv.style.display = 'block';
-            }
+        if (window.healthcareProviderUI) {
+            window.healthcareProviderUI.createScreen();
+            this.switchToScreen('manage-providers');
+            this.updateActiveNav('manage-providers');
+            window.healthcareProviderUI.resetForm();
+            window.healthcareProviderUI.currentPage = 1;
+            window.healthcareProviderUI.loadAndDisplayProviders();
+        } else {
+            alert('Healthcare provider UI is not available. Please refresh the page.');
         }
     }
 
@@ -857,24 +860,29 @@ class DashboardManager {
             emptyDiv.style.display = 'none';
 
             const services = await window.userManagement.getServices();
+            const searchTerm = (document.getElementById('service-search')?.value || '').toLowerCase().trim();
+            const filteredServices = services.filter(service => {
+                if (!searchTerm) return true;
+
+                const statusText = service.active ? 'active' : 'inactive';
+                return `${service.name || ''} ${statusText}`.toLowerCase().includes(searchTerm);
+            }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
             // Hide loading state
             loadingDiv.style.display = 'none';
 
-            if (services.length === 0) {
+            if (filteredServices.length === 0) {
                 emptyDiv.style.display = 'block';
                 return;
             }
 
             emptyDiv.style.display = 'none';
 
-            services.forEach(service => {
+            filteredServices.forEach(service => {
                 const row = document.createElement('tr');
 
                 // Format date
-                const createdAt = service.createdAt ?
-                    service.createdAt.toDate().toLocaleDateString() :
-                    'N/A';
+                const createdAt = formatDateDDMMYYYY(service.createdAt) || 'N/A';
 
                 const statusText = service.active ? 'Active' : 'Inactive';
                 const statusClass = service.active ? 'status-active' : 'status-inactive';
@@ -942,6 +950,7 @@ class DashboardManager {
 
             // Load services
             this.services = await window.userManagement.getServices();
+            this.serviceNameById = new Map(this.services.map(service => [service.id, service.name]));
 
             // Load navigators if admin
             if (this.currentUserRole === 'admin') {
@@ -989,12 +998,16 @@ class DashboardManager {
             // Clear existing options except the first one
             serviceTypeFilter.innerHTML = '<option value="">All</option>';
 
-            this.services.forEach(service => {
+            [...this.services]
+                .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                .forEach(service => {
                 const option = document.createElement('option');
                 option.value = service.id;
                 option.textContent = service.name;
                 serviceTypeFilter.appendChild(option);
             });
+
+            this.filterSelectOptions('filter-service-type-search', 'filter-service-type');
         }
 
         // Populate healthcare providers filter
@@ -1007,12 +1020,16 @@ class DashboardManager {
                 // Clear existing options except the first one
                 hcpFilter.innerHTML = '<option value="">All</option>';
 
-                providers.forEach(provider => {
+                providers
+                    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                    .forEach(provider => {
                     const option = document.createElement('option');
                     option.value = provider.name;
                     option.textContent = provider.name;
                     hcpFilter.appendChild(option);
                 });
+
+                this.filterSelectOptions('filter-hcp-search', 'filter-hcp');
             } catch (error) {
                 console.error('Error loading healthcare providers for filter:', error);
             }
@@ -1029,17 +1046,55 @@ class DashboardManager {
                     // Clear existing options except the first one
                     navigatorSelect.innerHTML = '<option value="">All</option>';
 
-                    this.navigators.forEach(navigator => {
+                    [...this.navigators]
+                        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                        .forEach(navigator => {
                         const option = document.createElement('option');
                         option.value = navigator.uid;
                         option.textContent = navigator.name;
                         navigatorSelect.appendChild(option);
                     });
+
+                    this.filterSelectOptions('filter-navigator-search', 'filter-navigator');
                 }
             } else {
                 navigatorFilter.style.display = 'none';
             }
         }
+    }
+
+    bindFilterSearchInputs() {
+        [
+            ['filter-service-type-search', 'filter-service-type'],
+            ['filter-hcp-search', 'filter-hcp'],
+            ['filter-navigator-search', 'filter-navigator']
+        ].forEach(([inputId, selectId]) => {
+            const input = document.getElementById(inputId);
+            if (!input || input.dataset.bound === 'true') return;
+
+            input.addEventListener('input', () => {
+                this.filterSelectOptions(inputId, selectId);
+            });
+            input.dataset.bound = 'true';
+        });
+    }
+
+    filterSelectOptions(inputId, selectId) {
+        const input = document.getElementById(inputId);
+        const select = document.getElementById(selectId);
+        if (!input || !select) return;
+
+        const searchTerm = input.value.toLowerCase().trim();
+        Array.from(select.options).forEach((option, index) => {
+            if (index === 0) {
+                option.hidden = false;
+                return;
+            }
+
+            option.hidden = searchTerm
+                ? !option.textContent.toLowerCase().includes(searchTerm)
+                : false;
+        });
     }
 
     // Apply filters
@@ -1060,6 +1115,7 @@ class DashboardManager {
             const referralStatus = document.getElementById('filter-referral-status').value;
             const paymentByUsFilter = document.getElementById('filter-payment-by-us').value;
             const searchTerm = document.getElementById('universal-search').value.toLowerCase().trim();
+            const dateSort = document.getElementById('filter-date-sort')?.value || 'desc';
             const navigatorFilter = this.currentUserRole === 'admin' ?
                 document.getElementById('filter-navigator').value : null;
 
@@ -1135,6 +1191,12 @@ class DashboardManager {
                 return true;
             });
 
+            this.filteredEntries.sort((a, b) => {
+                const dateA = a.date ? new Date(a.date).getTime() : 0;
+                const dateB = b.date ? new Date(b.date).getTime() : 0;
+                return dateSort === 'asc' ? dateA - dateB : dateB - dateA;
+            });
+
             // Update dashboard
             this.updateDashboard();
 
@@ -1175,12 +1237,7 @@ class DashboardManager {
 
     // Get service name by ID
     getServiceNameById(serviceId) {
-        if (!this.services || this.services.length === 0) {
-            return '';
-        }
-
-        const service = this.services.find(s => s.id === serviceId);
-        return service ? service.name : '';
+        return this.serviceNameById.get(serviceId) || '';
     }
 
     // Reset all filters
@@ -1199,12 +1256,21 @@ class DashboardManager {
 
             // Reset service type
             document.getElementById('filter-service-type').value = '';
+            const serviceSearch = document.getElementById('filter-service-type-search');
+            if (serviceSearch) serviceSearch.value = '';
 
             // Reset other filters
             document.getElementById('filter-package-type').value = '';
 
             // Reset HCP
             document.getElementById('filter-hcp').value = '';
+            const hcpSearch = document.getElementById('filter-hcp-search');
+            if (hcpSearch) hcpSearch.value = '';
+
+            const dateSortFilter = document.getElementById('filter-date-sort');
+            if (dateSortFilter) {
+                dateSortFilter.value = 'desc';
+            }
 
             // Reset collected by
             document.getElementById('filter-collected-by').value = '';
@@ -1223,6 +1289,12 @@ class DashboardManager {
             if (navigatorFilter) {
                 navigatorFilter.value = '';
             }
+            const navigatorSearch = document.getElementById('filter-navigator-search');
+            if (navigatorSearch) navigatorSearch.value = '';
+
+            this.filterSelectOptions('filter-service-type-search', 'filter-service-type');
+            this.filterSelectOptions('filter-hcp-search', 'filter-hcp');
+            this.filterSelectOptions('filter-navigator-search', 'filter-navigator');
 
             // Apply the reset filters (which means no filters)
             this.applyFilters();
@@ -1295,15 +1367,22 @@ class DashboardManager {
                 referralReceived += entry.referralAmount || 0;
             }
 
-            if (entry.paymentByUs === 'Yes' && entry.paymentDetails) {
-                totalPaid += entry.paymentDetails.amountPaid || 0;
+            if (entry.paymentByUs && entry.paymentByUs.enabled) {
+                totalPaid += entry.paymentByUs.paidAmount || 0;
+                pendingPayment += entry.paymentByUs.balanceAmount || 0;
+            } else if (entry.paymentByUs === 'Yes' && entry.paymentDetails) {
+                const paidAmount = entry.paymentDetails.amountPaid || 0;
+                const totalAmount = entry.paymentDetails.totalAmount || entry.totalAmountToPay || entry.totalPaymentAmount || paidAmount;
+                totalPaid += paidAmount;
 
-                if (entry.paymentDetails.paymentStatus === 'Pending') {
-                    pendingPayment += entry.paymentDetails.amountPaid || 0;
+                if (!entry.paymentDetails.paymentStatus || entry.paymentDetails.paymentStatus === 'Pending') {
+                    pendingPayment += Math.max(totalAmount - paidAmount, 0);
                 }
-            } else if (entry.paymentByUs === 'Yes' && (!entry.paymentDetails || !entry.paymentDetails.paymentStatus)) {
-                // If paymentByUs is Yes but no payment details, consider it pending
-                pendingPayment += entry.amountPaid || 0;
+            } else if (entry.paymentByUs === 'Yes') {
+                const paidAmount = entry.amountPaid || 0;
+                const totalAmount = entry.totalAmountToPay || entry.totalPaymentAmount || paidAmount;
+                totalPaid += paidAmount;
+                pendingPayment += Math.max(totalAmount - paidAmount, 0);
             }
         });
 
@@ -1336,43 +1415,14 @@ class DashboardManager {
 
     // Switch between different screens
     switchToScreen(screenName) {
-        // Hide the main dashboard content (summary cards, filters, charts, table)
-        const mainDashboard = document.querySelector('.dashboard-content');
-        const dashboardChildren = mainDashboard.children;
-
-        // Hide all direct children of dashboard-content
-        for (let child of dashboardChildren) {
-            if (!child.id || !child.id.includes('-screen')) {
-                child.style.display = 'none';
-            }
+        if (!this.screenManager) {
+            this.screenManager = new ScreenManager(
+                document.querySelector('.dashboard-content'),
+                (name) => this.createScreen(name)
+            );
         }
 
-        // Hide all dashboard screens
-        const allScreens = document.querySelectorAll('.dashboard-screen');
-        allScreens.forEach(screen => {
-            screen.style.display = 'none';
-        });
-
-        // Show requested screen or create it
-        let targetScreen = document.getElementById(`${screenName}-screen`);
-        if (!targetScreen) {
-            this.createScreen(screenName);
-            targetScreen = document.getElementById(`${screenName}-screen`);
-        }
-
-        if (targetScreen) {
-            targetScreen.style.display = 'block';
-        }
-
-        // If returning to dashboard, show main dashboard content
-        if (screenName === 'dashboard') {
-            for (let child of dashboardChildren) {
-                if (!child.id || !child.id.includes('-screen')) {
-                    child.style.display = '';
-                }
-            }
-        }
-
+        this.screenManager.switchTo(screenName);
         this.currentScreen = screenName;
     }
 
@@ -1381,224 +1431,16 @@ class DashboardManager {
         const dashboardContent = document.querySelector('.dashboard-content');
         if (!dashboardContent) return;
 
+        if (screenName === 'dashboard') {
+            return;
+        }
+
         // Create screen container
         const screenElement = document.createElement('div');
         screenElement.id = `${screenName}-screen`;
         screenElement.className = 'dashboard-screen';
         screenElement.style.display = 'none';
-
-        // For dashboard screen, we need to create the original content
-        if (screenName === 'dashboard') {
-            // Create the dashboard content
-            screenElement.innerHTML = `
-                <div class="dashboard-header">
-                    <h1 id="dashboard-title">Dashboard</h1>
-                    <button id="add-entry-btn" class="btn-primary"><i class="fas fa-plus-circle"></i> Add Entry</button>
-                </div>
-
-                <!-- Summary Cards -->
-                <div class="summary-cards">
-                    <div class="card">
-                        <div class="card-icon bg-blue">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                        </div>
-                        <div class="card-content">
-                            <h3>Total Bill Amount</h3>
-                            <p id="total-bill-amount-display">₹0</p>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-icon bg-green">
-                            <i class="fas fa-tag"></i>
-                        </div>
-                        <div class="card-content">
-                            <h3>Total Discount</h3>
-                            <p id="total-discount">₹0</p>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-icon bg-purple">
-                            <i class="fas fa-hand-holding-usd"></i>
-                        </div>
-                        <div class="card-content">
-                            <h3>Referral Received</h3>
-                            <p id="referral-received">₹0</p>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-icon bg-orange">
-                            <i class="fas fa-rupee-sign"></i>
-                        </div>
-                        <div class="card-content">
-                            <h3>Total Paid</h3>
-                            <p id="total-paid">₹0</p>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-icon bg-red">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <div class="card-content">
-                            <h3>Pending Payment</h3>
-                            <p id="pending-payment">₹0</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Filters -->
-                <div class="filters">
-                    <!-- Row 1: Date Range + Main Filters -->
-                    <div class="filter-row">
-                        <div class="filter-group date-range">
-                            <label>Date Range</label>
-                            <div class="date-range-inputs">
-                                <div class="date-input-wrapper">
-                                    <label for="filter-start-date">Start</label>
-                                    <input type="date" id="filter-start-date" required>
-                                </div>
-                                <div class="date-input-wrapper">
-                                    <label for="filter-end-date">End</label>
-                                    <input type="date" id="filter-end-date" required>
-                                </div>
-                            </div>
-                            <div class="date-presets">
-                                <button type="button" class="btn-small" data-preset="today">Today</button>
-                                <button type="button" class="btn-small" data-preset="7days">7 Days</button>
-                                <button type="button" class="btn-small" data-preset="30days">30 Days</button>
-                            </div>
-                        </div>
-                        
-                        <div class="filter-group">
-                            <label for="filter-service-type">Service Type</label>
-                            <select id="filter-service-type">
-                                <option value="">All</option>
-                                <!-- Options populated by JavaScript -->
-                            </select>
-                        </div>
-                        
-                        <div class="filter-group">
-                            <label for="filter-package-type">Package Type</label>
-                            <select id="filter-package-type">
-                                <option value="">All</option>
-                                <option value="Basic">Basic</option>
-                                <option value="Premium">Premium</option>
-                                <option value="Special">Special</option>
-                            </select>
-                        </div>
-                        
-                        <div class="filter-group">
-                            <label for="filter-hcp">Healthcare Provider</label>
-                            <select id="filter-hcp">
-                                <option value="">All</option>
-                                <!-- Options populated by JavaScript -->
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Row 2: Additional Filters -->
-                    <div class="filter-row">
-                        <div class="filter-group">
-                            <label for="filter-collected-by">Collected By</label>
-                            <select id="filter-collected-by">
-                                <option value="">All</option>
-                                <option value="Collected by AssistHealth">Collected by AssistHealth</option>
-                                <option value="Collected by Healthcare Provider">Collected by Healthcare Provider</option>
-                            </select>
-                        </div>
-                        
-                        <div class="filter-group">
-                            <label for="filter-referral-status">Referral Status</label>
-                            <select id="filter-referral-status">
-                                <option value="">All</option>
-                                <option value="Received">Received</option>
-                                <option value="Pending">Pending</option>
-                                <option value="None">None</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Navigator filter (admin only) -->
-                        <div id="navigator-filter" class="filter-group" style="display: none;">
-                            <label for="filter-navigator">Navigator</label>
-                            <select id="filter-navigator">
-                                <option value="">All</option>
-                                <!-- Options populated by JavaScript -->
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Action Buttons Row -->
-                    <div class="filter-actions">
-                        <button id="apply-filters-btn" class="btn-primary">
-                            <i class="fas fa-check"></i> Apply Filters
-                        </button>
-                        <button id="reset-filters-btn" class="btn-secondary">
-                            <i class="fas fa-undo"></i> Reset Filters
-                        </button>
-                        <button id="download-excel-btn" class="btn-success">
-                            <i class="fas fa-file-excel"></i> Download Excel
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Charts -->
-                <div class="charts-container">
-                    <div class="chart">
-                        <canvas id="line-chart"></canvas>
-                    </div>
-                    <div class="chart">
-                        <canvas id="bar-chart"></canvas>
-                    </div>
-                    <div class="chart">
-                        <canvas id="referral-pie-chart"></canvas>
-                    </div>
-                    <div class="chart">
-                        <canvas id="payment-pie-chart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Table -->
-                <div class="table-container">
-                    <table id="entries-table">
-                        <thead>
-                            <tr>
-                                <th>SL No</th>
-                                <th>Date</th>
-                                <th>Member Name</th>
-                                <th>AHID</th>
-                                <th>Service Type</th>
-                                <th>Package Type</th>
-                                <th>HCP Name</th>
-                                <th>Collected By</th>
-                                <th>Transaction Mode</th>
-                                <th>Transaction ID</th>
-                                <th>Total Bill</th>
-                                <th>Discount</th>
-                                <th>Referral Amount</th>
-                                <th>Referral Status</th>
-                                <th>Referral Payment Mode</th>
-                                <th>Referral Transaction ID</th>
-                                <th>Payment By Us</th>
-                                <th>Mode of Transfer</th>
-                                <th>Paid To</th>
-                                <th>Amount Paid</th>
-                                <th>Payment Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="entries-table-body">
-                            <!-- Entries will be populated by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-
         dashboardContent.appendChild(screenElement);
-
-        // Setup event listeners for the dashboard screen
-        if (screenName === 'dashboard') {
-            this.setupDashboardEventListeners();
-        }
     }
 
     // Setup dashboard event listeners
@@ -1642,6 +1484,8 @@ class DashboardManager {
                 this.applyDatePreset(e.target.dataset.preset);
             });
         });
+
+        this.bindFilterSearchInputs();
     }
 
     // Save original dashboard content
@@ -1728,7 +1572,7 @@ class DashboardManager {
             // Group entries by service type
             const serviceData = {};
             this.filteredEntries.forEach(entry => {
-                const serviceName = this.services.find(s => s.id === entry.serviceTypeId)?.name || 'Unknown';
+                const serviceName = this.getServiceNameById(entry.serviceTypeId) || 'Unknown';
                 if (!serviceData[serviceName]) {
                     serviceData[serviceName] = 0;
                 }
@@ -1839,14 +1683,11 @@ class DashboardManager {
             // Count payment statuses
             const paymentCounts = { 'Pending': 0, 'Completed': 0 };
             this.filteredEntries.forEach(entry => {
-                if (entry.paymentByUs === 'Yes' && entry.paymentDetails) {
-                    const status = entry.paymentDetails.paymentStatus || 'Pending';
+                if (entry.paymentByUs && entry.paymentByUs.enabled) {
+                    const status = entry.paymentByUs.paymentStatus || 'Pending';
                     if (paymentCounts.hasOwnProperty(status)) {
                         paymentCounts[status]++;
                     }
-                } else if (entry.paymentByUs === 'Yes') {
-                    // If paymentByUs is Yes but no payment details, count as Pending
-                    paymentCounts['Pending']++;
                 }
             });
 
@@ -1898,7 +1739,7 @@ class DashboardManager {
         this.cleanupListeners();
 
         // Check if user is properly authenticated before setting up listeners
-        if (!window.currentUserContext || !this.currentUser || !this.currentUserRole) {
+        if (!this.currentUser || !this.currentUserRole) {
             console.warn('User not properly authenticated, skipping real-time listeners');
             return;
         }

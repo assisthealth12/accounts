@@ -38,6 +38,37 @@ function safeParseNumber(value, defaultValue = 0) {
 }
 
 /**
+ * Format Date, Firestore Timestamp, ISO date, or dd/mm/yyyy strings as dd/mm/yyyy.
+ * @param {any} value - Date-like value to format
+ * @returns {string} - Date formatted as dd/mm/yyyy, or empty string when invalid
+ */
+function formatDateDDMMYYYY(value) {
+    if (!value) return '';
+
+    if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        return value;
+    }
+
+    let date;
+    if (value && typeof value.toDate === 'function') {
+        date = value.toDate();
+    } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const [year, month, day] = value.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+    } else {
+        date = new Date(value);
+    }
+
+    if (Number.isNaN(date.getTime())) return '';
+
+    return [
+        String(date.getDate()).padStart(2, '0'),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        date.getFullYear()
+    ].join('/');
+}
+
+/**
  * Retry async operation with exponential backoff
  * @param {Function} operation - Async function to retry
  * @param {number} maxRetries - Maximum retry attempts
