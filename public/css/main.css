@@ -1795,3 +1795,12 @@ div[style*="display: flex; gap: 10px;"] {
          b o x - s h a d o w :   n o n e ;  
  }  
  
+
+
+/* Icon Buttons */
+.actions-cell { display: flex; gap: 8px; }
+.btn-icon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s ease; font-size: 14px; }
+.btn-edit { background-color: #e3f2fd; color: #1976d2; }
+.btn-edit:hover { background-color: #bbdefb; transform: translateY(-1px); }
+.btn-delete { background-color: #ffebee; color: #d32f2f; }
+.btn-delete:hover { background-color: #ffcdd2; transform: translateY(-1px); }
