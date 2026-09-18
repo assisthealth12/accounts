@@ -331,11 +331,24 @@ class UserManagement {
             this.createEditEmployeeModal();
         }
         
+        const displayRole = role || 'navigator';
+        
         document.getElementById('edit-employee-id').value = id;
         document.getElementById('edit-employee-name').value = name;
-        document.getElementById('edit-employee-email').value = email;
-        document.getElementById('edit-employee-role').value = role || 'navigator';
         document.getElementById('edit-employee-isactive').value = isActive;
+        document.getElementById('edit-employee-role').value = displayRole;
+        
+        document.getElementById('display-employee-email').textContent = email;
+        
+        // Format role nicely (capitalize first letter)
+        const formattedRole = displayRole.charAt(0).toUpperCase() + displayRole.slice(1);
+        
+        // Change badge color depending on role
+        const badgeColor = displayRole === 'admin' ? '#e8f5e9' : '#e3f2fd';
+        const badgeTextColor = displayRole === 'admin' ? '#2e7d32' : '#1976d2';
+        
+        document.getElementById('display-employee-role').innerHTML = 
+            `<span style="background: ${badgeColor}; color: ${badgeTextColor}; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500;">${formattedRole}</span>`;
         
         document.getElementById('edit-employee-modal').classList.add('show');
     }
@@ -345,34 +358,39 @@ class UserManagement {
             <div id="edit-employee-modal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3>Edit Employee</h3>
+                        <h3><i class="fas fa-user-edit"></i> Edit Employee</h3>
                         <span id="close-edit-employee-modal" class="close">&times;</span>
                     </div>
                     <div class="modal-body">
                         <form id="edit-employee-form">
                             <input type="hidden" id="edit-employee-id">
                             <input type="hidden" id="edit-employee-isactive">
-                            <div class="form-group">
-                                <label for="edit-employee-name">Name</label>
-                                <input type="text" id="edit-employee-name" required>
+                            <input type="hidden" id="edit-employee-role">
+                            
+                            <div class="employee-info-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee;">
+                                <div style="margin-bottom: 10px;">
+                                    <small style="color: #6c757d; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;">Email Address</small>
+                                    <div id="display-employee-email" style="font-weight: 500; color: #333;"></div>
+                                </div>
+                                <div>
+                                    <small style="color: #6c757d; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;">System Role</small>
+                                    <div id="display-employee-role" style="margin-top: 4px;">
+                                        <span style="background: #e3f2fd; color: #1976d2; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500;">Navigator</span>
+                                    </div>
+                                </div>
                             </div>
+
                             <div class="form-group">
-                                <label for="edit-employee-email">Email</label>
-                                <input type="email" id="edit-employee-email" readonly style="background-color: #f5f5f5; cursor: not-allowed;" title="Email cannot be changed">
+                                <label for="edit-employee-name">Full Name</label>
+                                <input type="text" id="edit-employee-name" class="form-control" placeholder="Enter full name" required>
                             </div>
-                            <div class="form-group">
-                                <label for="edit-employee-role">Role</label>
-                                <select id="edit-employee-role" required>
-                                    <option value="navigator">Navigator</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                            </div>
-                            <div class="form-actions">
-                                <button type="button" id="update-employee-btn" class="btn-primary">
-                                    <i class="fas fa-save"></i> Update
-                                </button>
+                            
+                            <div class="form-actions" style="margin-top: 25px; display: flex; gap: 10px; justify-content: flex-end;">
                                 <button type="button" id="cancel-edit-employee-btn" class="btn-secondary">
                                     <i class="fas fa-times"></i> Cancel
+                                </button>
+                                <button type="button" id="update-employee-btn" class="btn-primary">
+                                    <i class="fas fa-save"></i> Save Changes
                                 </button>
                             </div>
                         </form>
