@@ -325,6 +325,158 @@ class UserManagement {
         }
     }
 
+    // Show edit employee modal
+    showEditEmployeeModal(id, name, email, role, isActive) {
+        if (!document.getElementById('edit-employee-modal')) {
+            this.createEditEmployeeModal();
+        }
+        
+        document.getElementById('edit-employee-id').value = id;
+        document.getElementById('edit-employee-name').value = name;
+        document.getElementById('edit-employee-email').value = email;
+        document.getElementById('edit-employee-role').value = role || 'navigator';
+        document.getElementById('edit-employee-isactive').value = isActive;
+        
+        document.getElementById('edit-employee-modal').classList.add('show');
+    }
+
+    createEditEmployeeModal() {
+        const modalHTML = `
+            <div id="edit-employee-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Edit Employee</h3>
+                        <span id="close-edit-employee-modal" class="close">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <form id="edit-employee-form">
+                            <input type="hidden" id="edit-employee-id">
+                            <input type="hidden" id="edit-employee-isactive">
+                            <div class="form-group">
+                                <label for="edit-employee-name">Name</label>
+                                <input type="text" id="edit-employee-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-employee-email">Email</label>
+                                <input type="email" id="edit-employee-email" readonly style="background-color: #f5f5f5; cursor: not-allowed;" title="Email cannot be changed">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-employee-role">Role</label>
+                                <select id="edit-employee-role" required>
+                                    <option value="navigator">Navigator</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="update-employee-btn" class="btn-primary">
+                                    <i class="fas fa-save"></i> Update
+                                </button>
+                                <button type="button" id="cancel-edit-employee-btn" class="btn-secondary">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        document.getElementById('close-edit-employee-modal').addEventListener('click', () => {
+            this.closeEditEmployeeModal();
+        });
+
+        document.getElementById('edit-employee-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('edit-employee-modal')) {
+                this.closeEditEmployeeModal();
+            }
+        });
+
+        document.getElementById('update-employee-btn').addEventListener('click', async () => {
+            await this.updateEmployee();
+        });
+
+        document.getElementById('cancel-edit-employee-btn').addEventListener('click', () => {
+            this.closeEditEmployeeModal();
+        });
+    }
+
+    closeEditEmployeeModal() {
+        const modal = document.getElementById('edit-employee-modal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+    }
+
+    async updateEmployee() {
+        const id = document.getElementById('edit-employee-id').value;
+        const name = document.getElementById('edit-employee-name').value.trim();
+        const role = document.getElementById('edit-employee-role').value;
+        const isActive = document.getElementById('edit-employee-isactive').value === 'true';
+
+        if (!name) {
+            alert('Please fill in the name');
+            return;
+        }
+
+        const updateBtn = document.getElementById('update-employee-btn');
+        const originalText = updateBtn.innerHTML;
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+        try {
+            const collection = isActive ? 'users' : 'allowed_users';
+            
+            await firestore.collection(collection).doc(id).update({
+                name,
+                role
+            });
+
+            alert('Employee updated successfully');
+            this.closeEditEmployeeModal();
+
+            if (window.dashboardManager) {
+                window.dashboardManager.loadAndDisplayEmployees();
+            }
+        } catch (error) {
+            console.error('Error updating employee:', error);
+            alert('Error updating employee: ' + error.message);
+        } finally {
+            updateBtn.disabled = false;
+            updateBtn.innerHTML = originalText;
+        }
+    }
+
+    async deleteEmployee(id, email, isActive) {
+        if (!confirm('Are you sure you want to delete this employee? This will revoke their access. This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            // Delete from allowed_users if exists
+            const allowedUsersSnapshot = await firestore.collection('allowed_users').where('email', '==', email).get();
+            for (const doc of allowedUsersSnapshot.docs) {
+                await doc.ref.delete();
+            }
+            
+            // Delete from users if exists
+            const usersSnapshot = await firestore.collection('users').where('email', '==', email).get();
+            for (const doc of usersSnapshot.docs) {
+                await doc.ref.delete();
+            }
+            
+            alert('Employee deleted successfully');
+            
+            if (window.dashboardManager) {
+                window.dashboardManager.loadAndDisplayEmployees();
+            }
+        } catch (error) {
+            console.error('Error deleting employee:', error);
+            alert('Error deleting employee: ' + error.message);
+        }
+    }
+
 
 }
 // Initialize user management

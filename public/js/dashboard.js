@@ -359,6 +359,7 @@ class DashboardManager {
                                 <th>Role</th>
                                 <th>Status</th>
                                 <th>Created</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="employees-table-body">
@@ -416,6 +417,7 @@ class DashboardManager {
                                         <th>Role</th>
                                         <th>Status</th>
                                         <th>Created</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="employees-table-body">
@@ -563,6 +565,14 @@ class DashboardManager {
                     <td>${user.role || 'navigator'}</td>
                     <td><span class="status ${statusClass}">${user.status}</span></td>
                     <td>${createdAt}</td>
+                    <td class="actions-cell">
+                        <button class="btn-icon btn-edit" title="Edit" onclick="window.userManagement.showEditEmployeeModal('${user.id}', '${user.name || ''}', '${user.email || ''}', '${user.role || 'navigator'}', ${user.isActive})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon btn-delete" title="Delete" onclick="window.userManagement.deleteEmployee('${user.id}', '${user.email || ''}', ${user.isActive})">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
                 `;
 
                 tableBody.appendChild(row);

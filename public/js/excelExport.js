@@ -208,4 +208,4 @@ class ExcelExportManager {
 }
 
 // Initialize excel export manager
-window.excelExportManager = new ExcelExportManager();
+window.excelExportManager = new ExcelExportManager();3
