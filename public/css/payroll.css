@@ -6,7 +6,7 @@
     padding: 12mm 12mm 8mm;
     background: #ffffff;
     color: #222;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Arial, Helvetica, 'Liberation Sans', sans-serif;
     font-size: 12.5px;
     line-height: 1.3;
     box-sizing: border-box;
@@ -52,6 +52,25 @@
     padding: 7px 6px;
     vertical-align: middle;
     word-wrap: break-word;
+    font-size: 12.5px;
+    border: none;
+    text-align: left;
+}
+
+/* Shield the payslip from main.css global/responsive table rules so it renders the same on every screen */
+.ps-page table.ps-grid {
+    width: 100%;
+    min-width: 0;
+    font-size: 12.5px;
+}
+
+.ps-page tr:hover,
+.ps-page tr:hover td.ps-lbl {
+    background: transparent;
+}
+
+.ps-page tr:last-child td {
+    border-bottom: none;
 }
 
 .ps-lbl {
@@ -66,8 +85,8 @@
     background: #f8e9dc;
 }
 
-.ps-amt,
-.ps-right {
+.ps-grid td.ps-amt,
+.ps-grid td.ps-right {
     text-align: right;
 }
 
@@ -569,7 +588,7 @@
 .pr-busy {
     position: fixed;
     inset: 0;
-    background: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.96);
     z-index: 10500;
     display: flex;
     align-items: center;
@@ -585,13 +604,15 @@
     color: #00b050;
 }
 
-/* Off-screen render target for PDF generation */
+/* Render target for PDF generation: sits at the document origin behind the busy overlay */
 .pr-pdf-stage {
-    position: fixed;
-    left: -10000px;
+    position: absolute;
+    left: 0;
     top: 0;
     width: 210mm;
     background: #ffffff;
+    z-index: -1;
+    pointer-events: none;
 }
 
 @media (max-width: 1000px) {

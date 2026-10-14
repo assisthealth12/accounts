@@ -1125,11 +1125,6 @@
                 this.toast('Select at least one employee', 'error');
                 return;
             }
-            if (typeof html2pdf === 'undefined') {
-                this.toast('PDF library not loaded', 'error');
-                return;
-            }
-
             const negative = ids.filter(id => {
                 const emp = this.employees.find(e => e.id === id);
                 return T().compute(emp, this.slips.get(id).inputs, this.month).net < 0;
@@ -1149,7 +1144,7 @@
                         await this.renderPdf([ids[i]], `Payslip_${this.safeName(emp.employeeId || emp.name)}_${monthName}.pdf`);
                     }
                 } else {
-                    await this.renderPdf(ids, `Payslips_${monthName}.pdf`, (n) => busy.update(`Rendering page ${n} of ${ids.length}...`));
+                    await this.renderPdf(ids, `Payslips_${monthName}.pdf`, (n) => busy.update(`Rendering payslip ${n} of ${ids.length}...`));
                 }
                 this.toast(`${ids.length} payslip${ids.length === 1 ? '' : 's'} generated`, 'success');
             } catch (error) {
@@ -1175,34 +1170,72 @@
             });
         }
 
-        // Renders each payslip to its own canvas (one A4 page each) so large batches stay within canvas limits.
+        // html2pdf's bundle doesn't expose html2canvas/jsPDF, and we need direct control of both.
+        async loadPdfLibs() {
+            const load = (src) => new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = () => reject(new Error('Could not load PDF library. Check your internet connection.'));
+                document.head.appendChild(script);
+            });
+            if (!window.html2canvas) await load('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+            if (!window.jspdf) await load('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+        }
+
+        /**
+         * One canvas per payslip, placed on its own A4 page. Output is independent of the viewer's laptop:
+         * layout is done at a fixed desktop width (no responsive CSS kicks in), scroll is reset before
+         * capture, and each image is scaled to fit a single page so it can never spill onto a second one.
+         */
         async renderPdf(ids, filename, onProgress) {
+            await this.loadPdfLibs();
+            if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
             const stage = document.createElement('div');
             stage.className = 'pr-pdf-stage';
             stage.innerHTML = ids.map(id => this.renderPage(id)).join('');
             document.body.appendChild(stage);
 
+            const scrollX = window.scrollX;
+            const scrollY = window.scrollY;
+            window.scrollTo(0, 0);
+
             try {
                 await Promise.all([...stage.querySelectorAll('img')].map(img => img.decode().catch(() => null)));
                 const pages = [...stage.querySelectorAll('.ps-page')];
-                const opt = {
-                    margin: 0,
-                    filename,
-                    image: { type: 'jpeg', quality: 0.95 },
-                    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+                const PAGE_W = 210;
+                const PAGE_H = 297;
 
-                let worker = html2pdf().set(opt).from(pages[0]).toPdf();
-                pages.slice(1).forEach((page, i) => {
-                    worker = worker
-                        .get('pdf')
-                        .then(pdf => { if (onProgress) onProgress(i + 2); pdf.addPage(); })
-                        .from(page).toContainer().toCanvas().toPdf();
-                });
-                await worker.save();
+                for (let i = 0; i < pages.length; i++) {
+                    if (onProgress) onProgress(i + 1);
+                    const canvas = await window.html2canvas(pages[i], {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff',
+                        windowWidth: 1280,
+                        windowHeight: 1800,
+                        scrollX: 0,
+                        scrollY: 0
+                    });
+
+                    const ratio = canvas.height / canvas.width;
+                    let w = PAGE_W;
+                    let h = PAGE_W * ratio;
+                    if (h > PAGE_H) {
+                        h = PAGE_H;
+                        w = PAGE_H / ratio;
+                    }
+                    if (i > 0) pdf.addPage();
+                    pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', (PAGE_W - w) / 2, 0, w, h);
+                }
+                pdf.save(filename);
             } finally {
                 stage.remove();
+                window.scrollTo(scrollX, scrollY);
             }
         }
 
