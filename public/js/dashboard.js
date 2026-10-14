@@ -222,6 +222,7 @@ class DashboardManager {
                 <li id="manage-providers">Manage Healthcare Providers</li>
                 <li id="office-expenses">Office Expenses</li>
                 <li id="manage-paid-by">Manage Paid By</li>
+                <li id="payroll">Payroll &amp; Payslips</li>
             `;
         } else if (role === 'navigator') {
             navItems = `
@@ -296,6 +297,14 @@ class DashboardManager {
             if (managePaidByEl) {
                 managePaidByEl.addEventListener('click', () => {
                     window.paidByPersonsManager.showManagePersonsScreen();
+                });
+            }
+
+            // Payroll & payslips navigation
+            const payrollEl = document.getElementById('payroll');
+            if (payrollEl) {
+                payrollEl.addEventListener('click', () => {
+                    window.payrollManager.show();
                 });
             }
         }

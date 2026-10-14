@@ -213,5 +213,22 @@ service cloud.firestore {
       // Only admins can delete office expenses
       allow delete: if isAdmin();
     }
+    
+    // ============================================
+    // PAYROLL (ADMIN ONLY)
+    // ============================================
+    
+    match /payroll_employees/{employeeId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Doc id: <payroll employee id>_<YYYY-MM>
+    match /payslips/{payslipId} {
+      allow read, write: if isAdmin();
+    }
+    
+    match /payroll_settings/{settingId} {
+      allow read, write: if isAdmin();
+    }
   }
 }
