@@ -863,3 +863,71 @@
     .pr-empty-options { grid-template-columns: 1fr; }
     .pr-toolbar-compact .pr-search { flex-basis: 100%; }
 }
+
+/* ---------- Settings: toggle switch ---------- */
+.pr-switch-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.pr-switch-row b {
+    display: block;
+    color: #2c3e50;
+    font-size: 0.92rem;
+}
+
+.pr-switch-row small {
+    display: block;
+    color: #7f8c8d;
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+
+.pr-switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 42px;
+    height: 24px;
+}
+
+.pr-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.pr-switch span {
+    position: absolute;
+    inset: 0;
+    background: #c8d1da;
+    border-radius: 24px;
+    transition: background 0.2s ease;
+}
+
+.pr-switch span::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 3px;
+    top: 3px;
+    background: #ffffff;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.pr-switch input:checked + span {
+    background: #2ecc71;
+}
+
+.pr-switch input:checked + span::before {
+    transform: translateX(18px);
+}
+
+.pr-switch input:focus-visible + span {
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.35);
+}

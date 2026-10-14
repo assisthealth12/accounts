@@ -211,7 +211,7 @@
                             <input type="text" id="pr-slip-search" placeholder="Filter employees">
                         </div>
                         <div class="pr-actions">
-                            <button class="btn-secondary" data-action="settings" title="Establishment & PT registration numbers"><i class="fas fa-building"></i> Company Details</button>
+                            <button class="btn-secondary" data-action="settings" title="Company details and Professional Tax"><i class="fas fa-cog"></i> Payroll Settings</button>
                         </div>
                     </div>
 
@@ -998,7 +998,7 @@
 
             body.innerHTML = list.map(emp => {
                 const slip = this.slips.get(emp.id);
-                const c = T().compute(emp, slip.inputs, this.month);
+                const c = T().compute(emp, slip.inputs, this.month, this.settings);
                 const checked = this.selected.has(emp.id);
                 return `
                 <tr data-id="${emp.id}" class="${checked ? 'pr-selected' : ''}">
@@ -1030,7 +1030,7 @@
             const emp = this.employees.find(e => e.id === id);
             if (!row || !emp) return;
             const slip = this.slips.get(id);
-            row.querySelector('[data-net]').textContent = inr(T().compute(emp, slip.inputs, this.month).net);
+            row.querySelector('[data-net]').textContent = inr(T().compute(emp, slip.inputs, this.month, this.settings).net);
             row.querySelector('[data-status]').innerHTML = this.statusBadge(slip);
             this.updateStats();
         }
@@ -1041,7 +1041,7 @@
                 const emp = this.employees.find(e => e.id === id);
                 const slip = this.slips.get(id);
                 if (!emp || !slip) return;
-                const c = T().compute(emp, slip.inputs, this.month);
+                const c = T().compute(emp, slip.inputs, this.month, this.settings);
                 gross += c.gross; ded += c.totalDeductions; net += c.net;
             });
             const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -1082,7 +1082,7 @@
                 ids.slice(i, i + 400).forEach(id => {
                     const emp = this.employees.find(e => e.id === id);
                     const slip = this.slips.get(id);
-                    const c = T().compute(emp, slip.inputs, this.month);
+                    const c = T().compute(emp, slip.inputs, this.month, this.settings);
                     const snapshot = {};
                     EMPLOYEE_FIELDS.forEach(f => { snapshot[f.key] = emp[f.key] ?? ''; });
                     const nextStatus = status === 'generated' || slip.status === 'generated' ? 'generated' : 'draft';
@@ -1127,7 +1127,7 @@
             }
             const negative = ids.filter(id => {
                 const emp = this.employees.find(e => e.id === id);
-                return T().compute(emp, this.slips.get(id).inputs, this.month).net < 0;
+                return T().compute(emp, this.slips.get(id).inputs, this.month, this.settings).net < 0;
             });
             if (negative.length && !confirm(`${negative.length} payslip(s) have a negative net pay. Generate anyway?`)) return;
 
@@ -1354,7 +1354,7 @@
         // Override fields stay blank (auto) and show the calculated value as placeholder.
         updateReviewPlaceholders() {
             const emp = this.employees.find(e => e.id === this.review.id);
-            const c = T().compute(emp, this.slips.get(this.review.id).inputs, this.month);
+            const c = T().compute(emp, this.slips.get(this.review.id).inputs, this.month, this.settings);
             const set = (key, v) => { const el = document.getElementById(`pr-r-${key}`); if (el) el.placeholder = `Auto: ${v}`; };
             set('ptOverride', c.autoPt);
             set('pfOverride', c.autoPf);
@@ -1385,13 +1385,30 @@
         // ---------------------------------------------------------------- settings
         openSettingsModal() {
             const s = this.settings;
-            const modal = this.openModal('pr-settings-modal', 'Company Details for Payslips', `
+            const pt = T().ptConfig(s);
+            const modal = this.openModal('pr-settings-modal', 'Payroll Settings', `
                 <form id="pr-settings-form">
-                    <div class="pr-form-grid pr-cols-2">
-                        <div class="form-group"><label for="pr-s-est">Establishment Reg. No. (Karnataka S&amp;E Act)</label><input id="pr-s-est" value="${esc(s.establishmentRegNo || '')}"></div>
-                        <div class="form-group"><label for="pr-s-pt">PT Registration No.</label><input id="pr-s-pt" value="${esc(s.ptRegNo || '')}"></div>
-                        <div class="form-group"><label for="pr-s-mode">Default Mode of Payment</label>
-                            <select id="pr-s-mode">${T().PAYMENT_MODES.map(m => `<option ${m === s.defaultPaymentMode ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>
+                    <div class="pr-form-section">
+                        <h4>Company Details</h4>
+                        <div class="pr-form-grid pr-cols-2">
+                            <div class="form-group"><label for="pr-s-est">Establishment Reg. No. (Karnataka S&amp;E Act)</label><input id="pr-s-est" value="${esc(s.establishmentRegNo || '')}"></div>
+                            <div class="form-group"><label for="pr-s-pt">PT Registration No.</label><input id="pr-s-pt" value="${esc(s.ptRegNo || '')}"></div>
+                            <div class="form-group"><label for="pr-s-mode">Default Mode of Payment</label>
+                                <select id="pr-s-mode">${T().PAYMENT_MODES.map(m => `<option ${m === s.defaultPaymentMode ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pr-form-section">
+                        <h4>Professional Tax (PT)</h4>
+                        <label class="pr-switch-row" for="pr-s-pt-enabled">
+                            <span class="pr-switch"><input type="checkbox" id="pr-s-pt-enabled" ${pt.enabled ? 'checked' : ''}><span></span></span>
+                            <span><b>Deduct Professional Tax automatically</b>
+                                <small id="pr-s-pt-hint"></small></span>
+                        </label>
+                        <div class="pr-form-grid" id="pr-s-pt-fields">
+                            <div class="form-group"><label for="pr-s-pt-amount">PT per month (₹)</label><input type="number" min="0" step="1" id="pr-s-pt-amount" value="${pt.amount}"></div>
+                            <div class="form-group"><label for="pr-s-pt-feb">PT in February (₹)</label><input type="number" min="0" step="1" id="pr-s-pt-feb" value="${pt.febAmount}"></div>
+                            <div class="form-group"><label for="pr-s-pt-threshold">Only when gross is at least (₹)</label><input type="number" min="0" step="1" id="pr-s-pt-threshold" value="${pt.threshold}"></div>
                         </div>
                     </div>
                     <div class="pr-modal-footer">
@@ -1400,12 +1417,27 @@
                     </div>
                 </form>`);
 
+            const ptToggle = modal.querySelector('#pr-s-pt-enabled');
+            const syncPt = () => {
+                modal.querySelector('#pr-s-pt-fields').style.display = ptToggle.checked ? '' : 'none';
+                modal.querySelector('#pr-s-pt-hint').textContent = ptToggle.checked
+                    ? 'PT is added to every payslip that meets the rule below. You can still change it per employee in Review.'
+                    : 'Off: PT is ₹0 on all payslips. You can still enter it for an individual employee in Review.';
+            };
+            ptToggle.addEventListener('change', syncPt);
+            syncPt();
+
             modal.querySelector('form').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const amount = (sel) => Math.max(0, Math.round(Number(modal.querySelector(sel).value) || 0));
                 const data = {
                     establishmentRegNo: modal.querySelector('#pr-s-est').value.trim(),
                     ptRegNo: modal.querySelector('#pr-s-pt').value.trim(),
-                    defaultPaymentMode: modal.querySelector('#pr-s-mode').value
+                    defaultPaymentMode: modal.querySelector('#pr-s-mode').value,
+                    ptEnabled: ptToggle.checked,
+                    ptAmount: amount('#pr-s-pt-amount'),
+                    ptFebAmount: amount('#pr-s-pt-feb'),
+                    ptThreshold: amount('#pr-s-pt-threshold')
                 };
                 try {
                     await firestore.collection('payroll_settings').doc('company').set({
@@ -1414,7 +1446,8 @@
                     }, { merge: true });
                     this.settings = { ...this.settings, ...data };
                     this.closeModal(modal);
-                    this.toast('Company details saved', 'success');
+                    this.renderSlips();
+                    this.toast('Payroll settings saved', 'success');
                 } catch (error) {
                     this.toast('Could not save: ' + error.message, 'error');
                 }

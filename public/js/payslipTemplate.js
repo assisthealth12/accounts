@@ -44,10 +44,24 @@
         return `01/${pad(monthIndex + 1)}/${year} - ${daysInMonth}/${pad(monthIndex + 1)}/${year}`;
     }
 
-    // Karnataka PT: Rs 200/month when monthly gross >= 25,000 (Rs 300 in February), else nil.
-    function karnatakaPT(gross, month) {
-        if (gross < 25000) return 0;
-        return parseMonth(month).monthIndex === 1 ? 300 : 200;
+    // Professional Tax defaults (Karnataka slab). Used only when PT is switched on in Company Details.
+    const PT_DEFAULTS = { ptEnabled: false, ptAmount: 200, ptFebAmount: 300, ptThreshold: 25000 };
+
+    function ptConfig(settings = {}) {
+        const pick = (key) => (hasValue(settings[key]) ? settings[key] : PT_DEFAULTS[key]);
+        return {
+            enabled: settings.ptEnabled === true,
+            amount: num(pick('ptAmount')),
+            febAmount: num(pick('ptFebAmount')),
+            threshold: num(pick('ptThreshold'))
+        };
+    }
+
+    // PT when enabled: fixed amount (separate February amount) once monthly gross reaches the threshold.
+    function professionalTax(gross, month, settings) {
+        const cfg = ptConfig(settings);
+        if (!cfg.enabled || gross < cfg.threshold) return 0;
+        return parseMonth(month).monthIndex === 1 ? cfg.febAmount : cfg.amount;
     }
 
     // Default LOP for someone who joined part-way through the month.
@@ -83,8 +97,9 @@
 
     /**
      * Fixed components are prorated by paid days; incentive/bonus are paid as entered.
+     * @param {object} settings - payroll_settings/company (PT rules)
      */
-    function compute(employee, inputs, month) {
+    function compute(employee, inputs, month, settings = {}) {
         const { daysInMonth } = parseMonth(month);
         const lopDays = Math.min(Math.max(num(inputs.lopDays), 0), daysInMonth);
         const paidDays = daysInMonth - lopDays;
@@ -106,7 +121,7 @@
             : 0;
 
         const deductions = {
-            pt: hasValue(inputs.ptOverride) ? Math.round(num(inputs.ptOverride)) : karnatakaPT(gross, month),
+            pt: hasValue(inputs.ptOverride) ? Math.round(num(inputs.ptOverride)) : professionalTax(gross, month, settings),
             tds: Math.round(num(inputs.tds)),
             pf: hasValue(inputs.pfOverride) ? Math.round(num(inputs.pfOverride)) : autoPf,
             advance: Math.round(num(inputs.advance)),
@@ -125,7 +140,7 @@
             totalDeductions,
             net: gross - totalDeductions,
             employerPf: hasValue(inputs.employerPfOverride) ? Math.round(num(inputs.employerPfOverride)) : autoPf,
-            autoPt: karnatakaPT(gross, month),
+            autoPt: professionalTax(gross, month, settings),
             autoPf
         };
     }
@@ -178,7 +193,7 @@
      * @param {object} p - { employee, inputs, month, settings, logoSrc }
      */
     function render({ employee, inputs, month, settings = {}, logoSrc }) {
-        const c = compute(employee, inputs, month);
+        const c = compute(employee, inputs, month, settings);
         const text = (v) => (hasValue(v) ? esc(v) : '&mdash;');
         const cell = (v, cls = 'ps-val') => `<td class="${cls}">${v}</td>`;
         const amount = (v) => cell(money(v), 'ps-val ps-amt');
@@ -255,6 +270,7 @@
         COMPANY,
         PAYMENT_MODES,
         compute,
+        ptConfig,
         render,
         defaultInputs,
         joiningLopDays,
